@@ -2,35 +2,23 @@ version: '3.8'
 
 services:
   glean-mcp-server:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # Use pre-built image from GitHub Container Registry
+    # Comment out the 'image' line and uncomment 'build' section for local development
+    image: ghcr.io/alankyshum/glean-mcp-server:latest
+
+    # Uncomment for local development:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+
     container_name: glean-mcp-server
     environment:
       - GLEAN_BASE_URL=${GLEAN_BASE_URL}
       - GLEAN_COOKIES=${GLEAN_COOKIES}
-    volumes:
-      - ./src:/app/src:ro
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     restart: unless-stopped
     stdin_open: true
     tty: true
-    networks:
-      - glean-network
-
-  # Optional: Add a simple web interface for testing
-  glean-web-test:
-    image: nginx:alpine
-    container_name: glean-web-test
-    ports:
-      - "8080:80"
-    volumes:
-      - ./web:/usr/share/nginx/html:ro
-    depends_on:
-      - glean-mcp-server
-    networks:
-      - glean-network
-    profiles:
-      - testing
 
 networks:
   glean-network:
