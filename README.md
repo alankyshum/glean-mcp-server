@@ -173,6 +173,18 @@ The repository includes automated CI/CD that:
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## GitHub Actions Workflow
+
+**Note**: Due to OAuth scope limitations, the GitHub Actions workflow file needs to be added manually after the initial setup. The workflow will provide:
+
+- Automated Docker image building on push to main/develop
+- Multi-architecture support (amd64, arm64)
+- Publishing to GitHub Container Registry (`ghcr.io/alankyshum/glean-mcp-server`)
+- Semantic versioning with tags
+- Build attestations for security
+
+To add the workflow, create `.github/workflows/docker-publish.yml` with the provided configuration.
+
 ## Support
 
 For issues and questions:
