@@ -50,13 +50,19 @@ GLEAN_COOKIES=your_cookie_string_here
 
 ### 4. Run with Docker Compose
 
+Using the pre-built image (recommended):
 ```bash
 docker-compose up -d
 ```
 
-### 5. Use Pre-built Image
+For local development with source code mounting:
+```bash
+docker-compose -f docker-compose.dev.yml up -d
+```
 
-Alternatively, use the pre-built image from GitHub Container Registry:
+### 5. Use Pre-built Image from GitHub Container Registry
+
+The easiest way to use this server is with the pre-built image:
 
 ```bash
 docker run -d \
@@ -65,6 +71,11 @@ docker run -d \
   -e GLEAN_COOKIES="your_cookie_string" \
   ghcr.io/alankyshum/glean-mcp-server:latest
 ```
+
+Available tags:
+- `latest` - Latest stable release from main branch
+- `develop` - Latest development build
+- `v1.0.0` - Specific version tags
 
 ## Usage
 
@@ -122,8 +133,11 @@ docker build -t glean-mcp-server .
 ### Testing
 
 ```bash
-# Run with test profile
-docker-compose --profile testing up
+# Test the server locally
+python test_server.py
+
+# Test with Docker
+docker-compose up
 ```
 
 ## Configuration
@@ -144,23 +158,31 @@ The Docker image supports:
 - Health checks
 - Proper signal handling
 
-## GitHub Actions
+## GitHub Actions & Container Registry
 
 The repository includes automated CI/CD that:
-- Builds Docker images on push to main/develop
-- Publishes to GitHub Container Registry
-- Supports semantic versioning with tags
-- Generates build attestations
+- ✅ Builds Docker images on push to main/develop branches
+- ✅ Publishes to GitHub Container Registry (`ghcr.io/alankyshum/glean-mcp-server`)
+- ✅ Multi-architecture support (amd64, arm64)
+- ✅ Semantic versioning with tags (v1.0.0, v1.1.0, etc.)
+- ✅ Build attestations for security
+- ✅ Automated testing on pull requests
 
-**Note**: Due to OAuth scope limitations, the GitHub Actions workflow file needs to be added manually after the initial setup. The workflow will provide:
+### Using the Container Registry
 
-- Automated Docker image building on push to main/develop
-- Multi-architecture support (amd64, arm64)
-- Publishing to GitHub Container Registry (`ghcr.io/alankyshum/glean-mcp-server`)
-- Semantic versioning with tags
-- Build attestations for security
+Pull the latest image:
+```bash
+docker pull ghcr.io/alankyshum/glean-mcp-server:latest
+```
 
-To add the workflow, create `.github/workflows/docker-publish.yml` with the provided configuration.
+Run with your configuration:
+```bash
+docker run -d \
+  --name glean-mcp-server \
+  -e GLEAN_BASE_URL=https://your-company.glean.com \
+  -e GLEAN_COOKIES="your_cookie_string" \
+  ghcr.io/alankyshum/glean-mcp-server:latest
+```
 
 ## Security Notes
 
