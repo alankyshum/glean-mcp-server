@@ -10,13 +10,13 @@ import os
 
 class GleanClient:
     """Client for interacting with Glean API."""
-    
+
     def __init__(self, base_url: str, cookies: str):
         """
         Initialize the Glean client.
-        
+
         Args:
-            base_url: Base URL for Glean API (e.g., https://linkedin-be.glean.com)
+            base_url: Base URL for Glean API (e.g., https://your-company.glean.com)
             cookies: Cookie string for authentication
         """
         self.base_url = base_url.rstrip('/')
@@ -41,28 +41,28 @@ class GleanClient:
                 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
             }
         )
-    
+
     async def search(
-        self, 
-        query: str, 
-        page_size: int = 14, 
+        self,
+        query: str,
+        page_size: int = 14,
         max_snippet_size: int = 215,
         timeout_millis: int = 10000
     ) -> Dict[str, Any]:
         """
         Perform a search query against Glean API.
-        
+
         Args:
             query: Search query string
             page_size: Number of results per page
             max_snippet_size: Maximum size of result snippets
             timeout_millis: Request timeout in milliseconds
-            
+
         Returns:
             Search results from Glean API
         """
         url = f"{self.base_url}/api/v1/search"
-        
+
         # Build request payload based on the provided curl example
         payload = {
             "inputDetails": {"hasCopyPaste": False},
@@ -78,7 +78,7 @@ class GleanClient:
                 "queryOverridesFacetFilters": True,
                 "responseHints": [
                     "RESULTS",
-                    "FACET_RESULTS", 
+                    "FACET_RESULTS",
                     "ALL_RESULT_COUNTS",
                     "SPELLCHECK_METADATA"
                 ],
@@ -101,23 +101,23 @@ class GleanClient:
             "timeoutMillis": timeout_millis,
             "timestamp": datetime.utcnow().isoformat() + "Z"
         }
-        
+
         # Add query parameters
         params = {
             "clientVersion": "mcp-server-1.0.0",
             "locale": "en"
         }
-        
+
         response = await self.client.post(
             url,
             json=payload,
             params=params,
             headers={"Cookie": self.cookies}
         )
-        
+
         response.raise_for_status()
         return response.json()
-    
+
     async def close(self):
         """Close the HTTP client."""
         await self.client.aclose()

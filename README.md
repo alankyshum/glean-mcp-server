@@ -2,6 +2,8 @@
 
 A Docker-based Model Context Protocol (MCP) server that provides search functionality for Glean knowledge bases.
 
+> **Note**: This repository is designed to work with any Glean instance. Simply replace `your-company` with your organization's Glean domain. See [GENERIC_SETUP.md](GENERIC_SETUP.md) for detailed setup instructions.
+
 ## Features
 
 - 🔍 **Search Integration**: Full-featured search against Glean API
@@ -149,6 +151,8 @@ docker-compose up
 | `GLEAN_BASE_URL` | Yes | Base URL of your Glean instance |
 | `GLEAN_COOKIES` | Yes | Authentication cookies |
 | `LOG_LEVEL` | No | Logging level (default: INFO) |
+| `GLEAN_DEFAULT_PAGE_SIZE` | No | Default number of search results (default: 14) |
+| `GLEAN_DEFAULT_SNIPPET_SIZE` | No | Default snippet size for results (default: 215) |
 
 ### Docker Configuration
 
@@ -192,6 +196,16 @@ docker run -d \
 - Use environment variables or secure secret management
 - Never commit cookies to version control
 - Consider implementing token refresh mechanisms
+
+## Customization for Your Organization
+
+### Quick Setup Checklist
+1. **Replace company placeholder**: Update `your-company` with your organization's Glean domain
+2. **Configure environment**: Copy `.env.example` to `.env` and add your Glean instance details
+3. **Update paths**: Modify `scripts/run-glean-mcp.sh` with your actual installation path
+4. **Test connection**: Run `python test_server.py` to verify your configuration
+
+See [GENERIC_SETUP.md](GENERIC_SETUP.md) for detailed instructions.
 
 ## Contributing
 
