@@ -34,6 +34,7 @@ Add this to your MCP settings file (see `mcp-settings-example.json` for referenc
         "command": "docker",
         "args": [
           "run", "--rm", "-i",
+          "--pull", "always",
           "-e", "GLEAN_BASE_URL=https://your-company.glean.com",
           "-e", "GLEAN_COOKIES=your_cookie_string_here",
           "ghcr.io/alankyshum/glean-mcp-server:latest"
@@ -79,6 +80,15 @@ export GLEAN_COOKIES="your_cookie_string"
   }
 }
 ```
+
+## 🔄 Upgrading to Latest Version
+
+The configuration above uses `--pull always` to automatically get the latest container release. To upgrade:
+
+1. **Restart Cursor/VS Code** - The next search will automatically pull the latest image
+2. **Manual update** (optional): `docker pull ghcr.io/alankyshum/glean-mcp-server:latest`
+
+For specific versions, replace `:latest` with `:v1.1.0` or your desired version tag.
 
 ## Usage
 

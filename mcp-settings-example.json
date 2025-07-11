@@ -5,6 +5,7 @@
         "command": "docker",
         "args": [
           "run", "--rm", "-i",
+          "--pull", "always",
           "-e", "GLEAN_BASE_URL=https://your-company.glean.com",
           "-e", "GLEAN_COOKIES=your_cookie_string_here",
           "-e", "GLEAN_TOOL_DESCRIPTION=Search your company's internal knowledge base",
