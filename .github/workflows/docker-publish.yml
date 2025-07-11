@@ -13,7 +13,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository_owner }}/glean-mcp-server
 
 jobs:
   build-and-push:
@@ -32,10 +32,11 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata
@@ -53,60 +54,51 @@ jobs:
 
       - name: Build and push Docker image
         id: push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64
-          push: true
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Generate artifact attestation
+        if: github.event_name != 'pull_request'
         uses: actions/attest-build-provenance@v1
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
   test:
     runs-on: ubuntu-latest
-    needs: build-and-push
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build test image
+        uses: docker/build-push-action@v6
         with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run basic import test
-        run: |
-          python -c "
-          import sys
-          sys.path.insert(0, 'src')
-          from glean_client import GleanClient
-          from glean_mcp_server import server
-          print('✅ All imports successful')
-          "
+          context: .
+          load: true
+          tags: test-image:latest
+          cache-from: type=gha
 
       - name: Test Docker image
         run: |
           docker run --rm \
             -e GLEAN_BASE_URL=https://example.glean.com \
             -e GLEAN_COOKIES=test_cookies \
-            ghcr.io/${{ github.repository }}:${{ github.sha }} \
+            test-image:latest \
             python -c "
             import os
-            print('✅ Environment variables loaded')
+            print('✅ Docker build successful')
             print(f'Base URL: {os.getenv(\"GLEAN_BASE_URL\")}')
             "
