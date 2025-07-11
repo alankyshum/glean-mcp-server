@@ -93,7 +93,7 @@ class GleanClient:
                 "firstEngageTsSec": int(datetime.utcnow().timestamp())
             },
             "sourceInfo": {
-                "clientVersion": "mcp-server-1.1.0",
+                "clientVersion": "mcp-server-1.3.0",
                 "initiator": "USER",
                 "isDebug": False,
                 "modality": "FULLPAGE"
@@ -104,7 +104,7 @@ class GleanClient:
 
         # Add query parameters
         params = {
-            "clientVersion": "mcp-server-1.1.0",
+            "clientVersion": "mcp-server-1.3.0",
             "locale": "en"
         }
 

@@ -14,9 +14,12 @@ A Model Context Protocol (MCP) server that provides search functionality for Gle
 ### 1. Get Authentication Cookies
 
 1. Open your browser and navigate to your Glean instance (e.g., `https://company.glean.com`)
-2. Open Developer Tools (F12) → Network tab
-3. Perform a search in Glean
-4. Find the search API request and copy the entire `Cookie` header value
+2. Make sure you're logged in
+3. Open Developer Tools (F12) → Network tab
+4. Perform a search in Glean to trigger API requests
+5. Find any search API request in the Network tab
+6. Right-click the request → Copy → Copy as cURL
+7. Extract the entire `Cookie` header value from the cURL command
 
 ### 2. Configure MCP in Cursor/VS Code
 
@@ -109,6 +112,7 @@ Once configured, you can search your Glean knowledge base directly from Cursor/V
 | `GLEAN_TOOL_DESCRIPTION` | No | `"Search for internal company information"` | Custom description for the search tool |
 | `GLEAN_DEFAULT_PAGE_SIZE` | No | `14` | Default number of search results |
 | `GLEAN_DEFAULT_SNIPPET_SIZE` | No | `215` | Default snippet size for results |
+| `GLEAN_AUTO_OPEN_BROWSER` | No | `true` | Automatically open browser when cookies expire |
 
 ### Example with Custom Description
 ```json
@@ -144,10 +148,45 @@ cp .env.example .env
 python test_server.py
 ```
 
+## 🍪 Cookie Management
+
+Glean cookies expire weekly. Here are tools to make renewal easier:
+
+### Quick Cookie Renewal
+
+```bash
+# 1. Check if cookies are still valid
+python scripts/check-cookies.py
+
+# 2. Extract new cookies from browser
+# - Go to your Glean instance in browser
+# - Open Developer Tools (F12) → Network tab
+# - Perform a search → Right-click API request → Copy as cURL
+# - Extract Cookie header value
+
+# 3. Update cookies automatically
+python scripts/update-cookies.py "your_new_cookie_string_here"
+```
+
+### Automated Monitoring
+
+Set up automatic cookie health checks:
+
+```bash
+# Check cookie status manually
+python scripts/cookie-reminder.py
+
+# Set up daily automatic checks (optional)
+python scripts/cookie-reminder.py --setup-cron
+```
+
+
+
 ## Troubleshooting
 
 ### Authentication Issues
-- Ensure cookies are fresh (re-copy from browser if searches fail)
+- **Cookies expired**: Run `python scripts/check-cookies.py` to verify
+- **Quick renewal**: Use `python scripts/update-cookies.py "new_cookies"`
 - Verify your Glean URL is correct
 - Check that you have access to the Glean instance
 
