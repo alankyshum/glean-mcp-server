@@ -4,7 +4,7 @@ Glean MCP Server - A Model Context Protocol server for Glean search functionalit
 import asyncio
 import os
 import sys
-from typing import Any, Sequence
+from typing import Any
 import json
 
 from mcp.server.models import InitializationOptions
@@ -14,13 +14,13 @@ from mcp.types import (
     Tool,
     TextContent,
     ImageContent,
-    EmbeddedResource,
-    LoggingLevel
+    EmbeddedResource
 )
 from pydantic import AnyUrl
 from dotenv import load_dotenv
 
 from glean_client import GleanClient
+from glean_filter import filter_glean_response
 
 # Load environment variables
 load_dotenv()
@@ -119,20 +119,16 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent | Ima
                 max_snippet_size=max_snippet_size
             )
 
-            # Format the results for better readability
-            formatted_results = {
-                "query": query,
-                "total_results": len(results.get("results", [])),
-                "results": results.get("results", []),
-                "facets": results.get("facets", []),
-                "spellcheck": results.get("spellcheck", {}),
-                "debug_info": results.get("debugInfo", {})
-            }
+            # Filter the results to remove unnecessary data
+            filtered_results = filter_glean_response(results)
+
+            # Add query information
+            filtered_results["query"] = query
 
             return [
                 TextContent(
                     type="text",
-                    text=json.dumps(formatted_results, indent=2, ensure_ascii=False)
+                    text=json.dumps(filtered_results, indent=2, ensure_ascii=False)
                 )
             ]
         except Exception as e:
@@ -171,7 +167,7 @@ async def main():
             write_stream,
             InitializationOptions(
                 server_name="glean-mcp-server",
-                server_version="1.0.0",
+                server_version="1.1.0",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),
                     experimental_capabilities={},

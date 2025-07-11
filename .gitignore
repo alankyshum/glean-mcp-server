@@ -176,3 +176,9 @@ cython_debug/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Test results and temporary files
+test_results/
+*.json.tmp
+raw_*.json
+filtered_*.json

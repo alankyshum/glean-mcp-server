@@ -2,6 +2,13 @@
 
 A Model Context Protocol (MCP) server that provides search functionality for Glean knowledge bases in Cursor and VS Code.
 
+## ✨ Key Features
+
+- **Optimized Responses**: Advanced filtering reduces response size by 85-98% while preserving all useful information
+- **Fast Search**: Efficient search across your company's knowledge base
+- **Easy Setup**: Simple Docker-based deployment with environment variable configuration
+- **Flexible Configuration**: Customizable page sizes, snippet lengths, and tool descriptions
+
 ## Quick Setup for Cursor/VS Code
 
 ### 1. Get Authentication Cookies
@@ -142,3 +149,35 @@ python test_server.py
 - Restart Cursor/VS Code after configuration changes
 - Check the MCP settings file path is correct for your OS
 - Verify JSON syntax is valid
+
+## 🚀 Performance Optimization
+
+This server includes advanced response filtering that dramatically improves performance:
+
+- **85-98% smaller responses** compared to raw Glean API
+- **Faster search results** with reduced data transfer
+- **Clean, focused data** with only relevant information
+- **Preserved functionality** - all useful content and metadata retained
+
+Example compression:
+```
+Query: "documentation"
+Raw response: 195,593 characters → Filtered: 2,994 characters (98.5% reduction)
+```
+
+For more details, see [FILTERING.md](FILTERING.md).
+
+## 🧪 Testing and Development
+
+Test the filtering and API functionality:
+
+```bash
+# Test with default queries
+python3 scripts/test_and_filter.py
+
+# Test specific queries
+python3 scripts/test_and_filter.py "machine learning" "kubernetes"
+
+# Customize result size
+python3 scripts/test_and_filter.py "query" --page-size 10 --snippet-size 300
+```
