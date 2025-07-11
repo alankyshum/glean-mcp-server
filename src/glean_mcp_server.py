@@ -28,6 +28,7 @@ load_dotenv()
 # Get configuration from environment variables
 DEFAULT_PAGE_SIZE = int(os.getenv("GLEAN_DEFAULT_PAGE_SIZE", "14"))
 DEFAULT_SNIPPET_SIZE = int(os.getenv("GLEAN_DEFAULT_SNIPPET_SIZE", "215"))
+TOOL_DESCRIPTION = os.getenv("GLEAN_TOOL_DESCRIPTION", "Search for internal company information")
 
 # Initialize the MCP server
 server = Server("glean-mcp-server")
@@ -54,7 +55,7 @@ async def handle_read_resource(uri: AnyUrl) -> str:
     """Read a specific resource."""
     if uri.scheme != "glean":
         raise ValueError(f"Unsupported URI scheme: {uri.scheme}")
-    
+
     if uri.path == "/search":
         return json.dumps({
             "description": "Glean search resource",
@@ -71,7 +72,7 @@ async def handle_list_tools() -> list[Tool]:
     return [
         Tool(
             name="glean_search",
-            description="Search the Glean knowledge base for information",
+            description=TOOL_DESCRIPTION,
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -107,17 +108,17 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent | Ima
         query = arguments.get("query")
         if not query:
             raise ValueError("Query parameter is required")
-        
+
         page_size = arguments.get("page_size", DEFAULT_PAGE_SIZE)
         max_snippet_size = arguments.get("max_snippet_size", DEFAULT_SNIPPET_SIZE)
-        
+
         try:
             results = await glean_client.search(
                 query=query,
                 page_size=page_size,
                 max_snippet_size=max_snippet_size
             )
-            
+
             # Format the results for better readability
             formatted_results = {
                 "query": query,
@@ -127,7 +128,7 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent | Ima
                 "spellcheck": results.get("spellcheck", {}),
                 "debug_info": results.get("debugInfo", {})
             }
-            
+
             return [
                 TextContent(
                     type="text",
@@ -137,7 +138,7 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent | Ima
         except Exception as e:
             return [
                 TextContent(
-                    type="text", 
+                    type="text",
                     text=f"Error performing search: {str(e)}"
                 )
             ]
@@ -148,19 +149,19 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent | Ima
 async def main():
     """Main entry point for the server."""
     global glean_client
-    
+
     # Get configuration from environment variables
     base_url = os.getenv("GLEAN_BASE_URL")
     cookies = os.getenv("GLEAN_COOKIES")
-    
+
     if not base_url:
         raise ValueError("GLEAN_BASE_URL environment variable is required")
     if not cookies:
         raise ValueError("GLEAN_COOKIES environment variable is required")
-    
+
     # Initialize the Glean client
     glean_client = GleanClient(base_url=base_url, cookies=cookies)
-    
+
     # Run the server using stdio transport
     from mcp.server.stdio import stdio_server
 

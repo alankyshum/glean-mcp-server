@@ -1,0 +1,16 @@
+{
+  "mcp": {
+    "mcpServers": {
+      "glean": {
+        "command": "docker",
+        "args": [
+          "run", "--rm", "-i",
+          "-e", "GLEAN_BASE_URL=https://your-company.glean.com",
+          "-e", "GLEAN_COOKIES=your_cookie_string_here",
+          "-e", "GLEAN_TOOL_DESCRIPTION=Search your company's internal knowledge base",
+          "ghcr.io/alankyshum/glean-mcp-server:latest"
+        ]
+      }
+    }
+  }
+}

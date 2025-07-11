@@ -2,25 +2,11 @@ version: '3.8'
 
 services:
   glean-mcp-server:
-    # Use locally built image (since GitHub Actions needs troubleshooting)
-    build:
-      context: .
-      dockerfile: Dockerfile
-
-    # For future use when GitHub Container Registry is working:
-    # image: ghcr.io/alankyshum/glean-mcp-server:latest
-
+    image: ghcr.io/alankyshum/glean-mcp-server:latest
     container_name: glean-mcp-server
     environment:
       - GLEAN_BASE_URL=${GLEAN_BASE_URL}
       - GLEAN_COOKIES=${GLEAN_COOKIES}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     restart: unless-stopped
     stdin_open: true
     tty: true
-    ports:
-      - "3001:3001"
-
-networks:
-  glean-network:
-    driver: bridge
