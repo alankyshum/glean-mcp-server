@@ -131,7 +131,6 @@ class GleanClient:
         """
         # Ensure we're authenticated before making the request
         await self._ensure_authenticated()
-        await self._ensure_authenticated()
 
         url = f"{self.base_url}/api/v1/search"
 
@@ -176,7 +175,7 @@ class GleanClient:
 
         # Add query parameters
         params = {
-            "clientVersion": "mcp-server-1.3.0",
+            "clientVersion": "mcp-server-1.6.0",
             "locale": "en"
         }
 
@@ -217,7 +216,6 @@ class GleanClient:
             Complete chat response as a string
         """
         # Ensure we're authenticated before making the request
-        await self._ensure_authenticated()
         await self._ensure_authenticated()
 
         url = f"{self.base_url}/api/v1/chat"
