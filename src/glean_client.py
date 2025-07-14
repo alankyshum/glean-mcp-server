@@ -221,7 +221,7 @@ class GleanClient:
 
     def _parse_chat_response(self, data: dict) -> str:
         """
-        Parse the chat response and extract only the useful content from RESPOND step.
+        Parse the chat response and extract content from search steps and final response.
 
         Args:
             data: JSON response from chat API
@@ -231,25 +231,50 @@ class GleanClient:
         """
         complete_text = ""
         citations = []
+        search_context = ""
 
-        # Find the RESPOND message
+        # Process messages to extract both search context and response
         if 'messages' in data and data['messages']:
             for message in data['messages']:
-                if (message.get('author') == 'GLEAN_AI' and
-                    message.get('stepId') == 'RESPOND'):
+                if message.get('author') == 'GLEAN_AI':
+                    step_id = message.get('stepId')
 
-                    # Extract text fragments and citations
-                    if 'fragments' in message:
-                        for fragment in message['fragments']:
-                            if 'text' in fragment:
-                                complete_text += fragment['text']
-                            elif 'citation' in fragment:
-                                citations.append(fragment['citation'])
-                    break
+                    # Extract search/documentation steps (various step IDs possible)
+                    if (step_id and ('search' in step_id.lower() or
+                                   'documentation' in step_id.lower() or
+                                   'runbook' in step_id.lower() or
+                                   'context' in step_id.lower())):
+                        if 'fragments' in message:
+                            search_text = ""
+                            for fragment in message['fragments']:
+                                if 'text' in fragment:
+                                    search_text += fragment['text']
+                            if search_text.strip():
+                                if search_context:
+                                    search_context += "\n\n" + search_text.strip()
+                                else:
+                                    search_context = search_text.strip()
+
+                    # Extract the main response (RESPOND or synthesize_and_respond)
+                    elif step_id in ['RESPOND', 'synthesize_and_respond']:
+                        # Extract text fragments and citations
+                        if 'fragments' in message:
+                            for fragment in message['fragments']:
+                                if 'text' in fragment:
+                                    complete_text += fragment['text']
+                                elif 'citation' in fragment:
+                                    citations.append(fragment['citation'])
+
+        # Combine search context and response
+        result = ""
+        if search_context:
+            result += search_context + "\n\n"
+
+        result += complete_text
 
         # Add citations if available
         if citations:
-            complete_text += "\n\n**Sources:**\n"
+            result += "\n\n**Sources:**\n"
             seen_urls = set()
             citation_num = 1
             for citation in citations:
@@ -258,11 +283,11 @@ class GleanClient:
                     title = doc.get('title', 'Unknown')
                     url = doc.get('url', '')
                     if url and url not in seen_urls:
-                        complete_text += f"{citation_num}. [{title}]({url})\n"
+                        result += f"{citation_num}. [{title}]({url})\n"
                         seen_urls.add(url)
                         citation_num += 1
 
-        return complete_text.strip()
+        return result.strip()
 
     async def close(self):
         """Close the HTTP client."""
