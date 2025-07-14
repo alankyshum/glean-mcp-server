@@ -3,24 +3,32 @@ Glean API client for making search requests.
 """
 import httpx
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Callable
 from datetime import datetime
 import os
+
+
+class CookieExpiredError(Exception):
+    """Raised when cookies are expired and need renewal."""
+    pass
 
 
 class GleanClient:
     """Client for interacting with Glean API."""
 
-    def __init__(self, base_url: str, cookies: str):
+    def __init__(self, base_url: str, cookies: str, cookie_renewal_callback: Optional[Callable[[], str]] = None):
         """
         Initialize the Glean client.
 
         Args:
             base_url: Base URL for Glean API (e.g., https://your-company.glean.com)
             cookies: Cookie string for authentication
+            cookie_renewal_callback: Optional callback function to prompt for new cookies
         """
         self.base_url = base_url.rstrip('/')
         self.cookies = cookies
+        self.cookie_renewal_callback = cookie_renewal_callback
+        self._cookies_validated = False
         self.client = httpx.AsyncClient(
             timeout=30.0,
             headers={
@@ -42,6 +50,66 @@ class GleanClient:
             }
         )
 
+    async def _validate_cookies(self) -> bool:
+        """
+        Validate current cookies by making a test request.
+
+        Returns:
+            True if cookies are valid, False otherwise
+        """
+        try:
+            # Make a minimal search request to test authentication
+            url = f"{self.base_url}/api/v1/search"
+            payload = {
+                "query": "test",
+                "pageSize": 1,
+                "requestOptions": {"responseHints": ["RESULTS"]},
+                "timeoutMillis": 5000
+            }
+
+            response = await self.client.post(
+                url,
+                json=payload,
+                headers={"Cookie": self.cookies},
+                timeout=5.0
+            )
+
+            return response.status_code == 200
+        except (httpx.HTTPStatusError, httpx.TimeoutException):
+            return False
+        except Exception:
+            return False
+
+    async def _handle_cookie_expiration(self):
+        """
+        Handle cookie expiration by attempting renewal if callback is available.
+        """
+        if self.cookie_renewal_callback:
+            try:
+                new_cookies = self.cookie_renewal_callback()
+                if new_cookies and new_cookies.strip():
+                    self.cookies = new_cookies.strip()
+                    self._cookies_validated = False
+                    # Test the new cookies
+                    if await self._validate_cookies():
+                        self._cookies_validated = True
+                        return
+            except Exception:
+                pass
+
+        # If renewal failed or no callback available, raise error
+        raise CookieExpiredError("Cookies have expired and need manual renewal")
+
+    async def _ensure_authenticated(self):
+        """
+        Ensure the client is authenticated, attempting renewal if needed.
+        """
+        if not self._cookies_validated:
+            if await self._validate_cookies():
+                self._cookies_validated = True
+            else:
+                await self._handle_cookie_expiration()
+
     async def search(
         self,
         query: str,
@@ -61,6 +129,10 @@ class GleanClient:
         Returns:
             Search results from Glean API
         """
+        # Ensure we're authenticated before making the request
+        await self._ensure_authenticated()
+        await self._ensure_authenticated()
+
         url = f"{self.base_url}/api/v1/search"
 
         # Build request payload based on the provided curl example
@@ -93,7 +165,7 @@ class GleanClient:
                 "firstEngageTsSec": int(datetime.utcnow().timestamp())
             },
             "sourceInfo": {
-                "clientVersion": "mcp-server-1.4.0",
+                "clientVersion": "mcp-server-1.6.0",
                 "initiator": "USER",
                 "isDebug": False,
                 "modality": "FULLPAGE"
@@ -115,6 +187,17 @@ class GleanClient:
             headers={"Cookie": self.cookies}
         )
 
+        # Handle potential authentication issues
+        if response.status_code in [401, 403]:
+            await self._handle_cookie_expiration()
+            # Retry the request with potentially renewed cookies
+            response = await self.client.post(
+                url,
+                json=payload,
+                params=params,
+                headers={"Cookie": self.cookies}
+            )
+
         response.raise_for_status()
         return response.json()
 
@@ -133,6 +216,10 @@ class GleanClient:
         Returns:
             Complete chat response as a string
         """
+        # Ensure we're authenticated before making the request
+        await self._ensure_authenticated()
+        await self._ensure_authenticated()
+
         url = f"{self.base_url}/api/v1/chat"
 
         # Build request payload based on the provided curl example
@@ -195,7 +282,7 @@ class GleanClient:
         # Add query parameters
         params = {
             "timezoneOffset": 420,
-            "clientVersion": "mcp-server-1.4.0",
+            "clientVersion": "mcp-server-1.6.0",
             "locale": "en"
         }
 
@@ -212,6 +299,19 @@ class GleanClient:
             headers=headers,
             timeout=timeout_millis / 1000.0
         )
+
+        # Handle potential authentication issues
+        if response.status_code in [401, 403]:
+            await self._handle_cookie_expiration()
+            # Retry the request with potentially renewed cookies
+            headers["Cookie"] = self.cookies
+            response = await self.client.post(
+                url,
+                json=payload,
+                params=params,
+                headers=headers,
+                timeout=timeout_millis / 1000.0
+            )
 
         response.raise_for_status()
 

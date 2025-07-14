@@ -21,7 +21,7 @@ from mcp.types import (
 from pydantic import AnyUrl
 from dotenv import load_dotenv
 
-from glean_client import GleanClient
+from glean_client import GleanClient, CookieExpiredError
 from glean_filter import filter_glean_response
 
 # Load environment variables
@@ -38,6 +38,20 @@ server = Server("glean-mcp-server")
 
 # Global client instance
 glean_client: GleanClient = None
+
+
+def prompt_for_new_cookies() -> str:
+    """
+    Prompt the user for new cookies when the current ones expire.
+
+    Returns:
+        New cookie string provided by the user
+    """
+    # For MCP, we'll return a special message that instructs the user
+    # Since MCP doesn't support direct user input, we provide clear instructions
+    raise CookieExpiredError(
+        "Cookies have expired. Please update your MCP configuration with fresh cookies and restart."
+    )
 
 
 def generate_auth_error_message() -> str:
@@ -225,6 +239,17 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent | Ima
                     text=json.dumps(filtered_results, indent=2, ensure_ascii=False)
                 )
             ]
+        except CookieExpiredError as e:
+            # Handle cookie expiration with enhanced guidance
+            error_response = generate_auth_error_message()
+            error_response += f"\n\n⚠️ Automatic cookie renewal not available in MCP mode.\n\nTechnical details: {str(e)}"
+
+            return [
+                TextContent(
+                    type="text",
+                    text=error_response
+                )
+            ]
         except httpx.HTTPStatusError as e:
             # Handle HTTP status errors specifically
             if e.response.status_code in [401, 403]:
@@ -280,6 +305,17 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent | Ima
                 TextContent(
                     type="text",
                     text=result
+                )
+            ]
+        except CookieExpiredError as e:
+            # Handle cookie expiration with enhanced guidance
+            error_response = generate_auth_error_message()
+            error_response += f"\n\n⚠️ Automatic cookie renewal not available in MCP mode.\n\nTechnical details: {str(e)}"
+
+            return [
+                TextContent(
+                    type="text",
+                    text=error_response
                 )
             ]
         except httpx.HTTPStatusError as e:
@@ -341,8 +377,12 @@ async def main():
     if not cookies:
         raise ValueError("GLEAN_COOKIES environment variable is required")
 
-    # Initialize the Glean client
-    glean_client = GleanClient(base_url=base_url, cookies=cookies)
+    # Initialize the Glean client with cookie renewal callback
+    glean_client = GleanClient(
+        base_url=base_url,
+        cookies=cookies,
+        cookie_renewal_callback=prompt_for_new_cookies
+    )
 
     # Run the server using stdio transport
     from mcp.server.stdio import stdio_server
@@ -353,7 +393,7 @@ async def main():
             write_stream,
             InitializationOptions(
                 server_name="glean-mcp-server",
-                server_version="1.4.0",
+                server_version="1.6.0",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),
                     experimental_capabilities={},

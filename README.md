@@ -159,39 +159,64 @@ cp .env.example .env
 python test_server.py
 ```
 
-## 🍪 Cookie Management
+## 🔄 Cookie Management & Renewal
 
-Glean cookies expire weekly. Here are tools to make renewal easier:
+### Automatic Cookie Expiration Detection
 
-### Quick Cookie Renewal
+The MCP server automatically detects when your Glean cookies have expired and provides helpful guidance:
 
+- **Smart Detection**: Validates cookies before each request
+- **Auto Browser Opening**: Automatically opens your Glean instance to help with renewal
+- **Detailed Instructions**: Step-by-step guidance for cookie extraction
+- **Multiple Update Methods**: Supports both Docker and local installation workflows
+
+### When Cookies Expire
+
+If your cookies expire, you'll see a helpful error message with:
+
+1. **Automatic browser opening** to your Glean instance (if enabled)
+2. **Step-by-step renewal instructions**
+3. **Multiple update methods** for different installation types
+4. **Direct links** to renewal helper scripts
+
+### Cookie Renewal Options
+
+#### Option 1: Manual Update (Recommended for MCP)
+1. Follow the error message instructions to get new cookies
+2. Update your MCP configuration file with fresh cookies
+3. Restart Cursor/VS Code to reload the MCP server
+
+#### Option 2: Interactive Renewal (for local development)
 ```bash
-# 1. Check if cookies are still valid
-python scripts/check-cookies.py
+# Test cookie validation and renewal interactively
+python scripts/interactive-cookie-renewal.py
 
-# 2. Extract new cookies from browser
-# - Go to your Glean instance in browser
-# - Open Developer Tools (F12) → Network tab
-# - Perform a search → Right-click API request → Copy as cURL
-# - Extract Cookie header value
-
-# 3. Update cookies automatically
-python scripts/update-cookies.py "your_new_cookie_string_here"
+# Test chat functionality specifically
+python scripts/interactive-cookie-renewal.py chat
 ```
 
-### Automated Monitoring
-
-Set up automatic cookie health checks:
-
+#### Option 3: Automated Scripts
 ```bash
-# Check cookie status manually
-python scripts/cookie-reminder.py
+# Extract cookies from a cURL command
+python scripts/extract-cookies-from-curl.py --interactive
 
-# Set up daily automatic checks (optional)
-python scripts/cookie-reminder.py --setup-cron
+# Update cookies in environment file
+python scripts/update-cookies.py "your_new_cookies_here"
 ```
 
+### Cookie Validation
 
+The client automatically validates cookies by:
+- Making lightweight test requests before actual operations
+- Attempting automatic renewal if a callback is provided
+- Providing clear error messages with renewal instructions
+
+### Best Practices
+
+- **Monitor expiration**: Cookies typically last 24-48 hours
+- **Automate renewal**: Use the provided scripts for faster updates
+- **Keep backup**: Save your cookie extraction cURL commands
+- **Test regularly**: Use the interactive test script to verify connectivity
 
 ## Troubleshooting
 
