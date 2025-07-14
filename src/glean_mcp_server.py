@@ -114,6 +114,12 @@ async def handle_list_resources() -> list[Resource]:
             name="Glean Search",
             description="Search functionality for Glean knowledge base",
             mimeType="application/json",
+        ),
+        Resource(
+            uri=AnyUrl("glean://research"),
+            name="Glean Research",
+            description="AI-powered research functionality for Glean knowledge base",
+            mimeType="text/plain",
         )
     ]
 
@@ -129,6 +135,12 @@ async def handle_read_resource(uri: AnyUrl) -> str:
             "description": "Glean search resource",
             "usage": "Use the glean_search tool to perform searches",
             "available_tools": ["glean_search"]
+        })
+    elif uri.path == "/research":
+        return json.dumps({
+            "description": "Glean research resource",
+            "usage": "Use the glean_research tool to get AI-powered answers from your knowledge base",
+            "available_tools": ["glean_research"]
         })
     else:
         raise ValueError(f"Unknown resource path: {uri.path}")
@@ -161,6 +173,20 @@ async def handle_list_tools() -> list[Tool]:
                         "default": DEFAULT_SNIPPET_SIZE,
                         "minimum": 50,
                         "maximum": 1000
+                    }
+                },
+                "required": ["query"]
+            }
+        ),
+        Tool(
+            name="glean_research",
+            description="Research and get AI-powered answers from your company's knowledge base using Glean's chat AI",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The research question or topic to investigate"
                     }
                 },
                 "required": ["query"]
@@ -241,6 +267,63 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent | Ima
                         text=f"Error performing search: {str(e)}"
                     )
                 ]
+    elif name == "glean_research":
+        query = arguments.get("query")
+        if not query:
+            raise ValueError("Query parameter is required")
+
+        try:
+            # Use the chat API for research
+            result = await glean_client.chat(query=query)
+
+            return [
+                TextContent(
+                    type="text",
+                    text=result
+                )
+            ]
+        except httpx.HTTPStatusError as e:
+            # Handle HTTP status errors specifically
+            if e.response.status_code in [401, 403]:
+                error_response = generate_auth_error_message()
+                error_response += f"\n\nTechnical details: HTTP {e.response.status_code} - {e.response.reason_phrase}"
+
+                return [
+                    TextContent(
+                        type="text",
+                        text=error_response
+                    )
+                ]
+            else:
+                # Other HTTP errors
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"HTTP Error {e.response.status_code}: {str(e)}"
+                    )
+                ]
+        except Exception as e:
+            error_msg = str(e).lower()
+
+            # Check for authentication errors in general exceptions
+            if 'unauthorized' in error_msg or '401' in error_msg or '403' in error_msg:
+                error_response = generate_auth_error_message()
+                error_response += f"\n\nTechnical details: {str(e)}"
+
+                return [
+                    TextContent(
+                        type="text",
+                        text=error_response
+                    )
+                ]
+            else:
+                # Other errors (network, timeout, etc.)
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"Error performing research: {str(e)}"
+                    )
+                ]
     else:
         raise ValueError(f"Unknown tool: {name}")
 
@@ -270,7 +353,7 @@ async def main():
             write_stream,
             InitializationOptions(
                 server_name="glean-mcp-server",
-                server_version="1.3.0",
+                server_version="1.4.0",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),
                     experimental_capabilities={},

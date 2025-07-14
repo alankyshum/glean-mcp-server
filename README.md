@@ -4,8 +4,9 @@ A Model Context Protocol (MCP) server that provides search functionality for Gle
 
 ## ✨ Key Features
 
-- **Optimized Responses**: Advanced filtering reduces response size by 85-98% while preserving all useful information
+- **AI-Powered Research**: Get comprehensive answers with citations using Glean's chat AI
 - **Fast Search**: Efficient search across your company's knowledge base
+- **Optimized Responses**: Advanced filtering reduces response size by 85-98% while preserving all useful information
 - **Easy Setup**: Simple Docker-based deployment with environment variable configuration
 - **Flexible Configuration**: Customizable page sizes, snippet lengths, and tool descriptions
 
@@ -95,13 +96,23 @@ For specific versions, replace `:latest` with `:v1.1.0` or your desired version 
 
 ## Usage
 
-Once configured, you can search your Glean knowledge base directly from Cursor/VS Code:
+Once configured, you can interact with your Glean knowledge base directly from Cursor/VS Code using two tools:
 
+### Search Tool
 - **Tool name:** `glean_search`
+- **Purpose:** Find specific documents and information
 - **Parameters:**
   - `query` (required): Your search query
   - `page_size` (optional): Number of results (default: 14)
   - `max_snippet_size` (optional): Snippet size (default: 215)
+
+### Research Tool
+- **Tool name:** `glean_research`
+- **Purpose:** Get AI-powered answers and insights from your knowledge base
+- **Parameters:**
+  - `query` (required): Your research question or topic
+
+The research tool uses Glean's AI chat functionality to provide comprehensive answers with citations, while the search tool returns raw search results for more targeted document discovery.
 
 ## Configuration Options
 
