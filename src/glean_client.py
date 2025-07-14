@@ -255,8 +255,8 @@ class GleanClient:
                                 else:
                                     search_context = search_text.strip()
 
-                    # Extract the main response (RESPOND or synthesize_and_respond)
-                    elif step_id in ['RESPOND', 'synthesize_and_respond']:
+                    # Extract the main response (step IDs containing "respond" or "synthesize")
+                    elif (step_id and ('respond' in step_id.lower() or 'synthesize' in step_id.lower())):
                         # Extract text fragments and citations
                         if 'fragments' in message:
                             for fragment in message['fragments']:

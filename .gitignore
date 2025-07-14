@@ -182,3 +182,6 @@ test_results/
 *.json.tmp
 raw_*.json
 filtered_*.json
+
+# for internal tests
+internal-tests
