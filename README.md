@@ -19,8 +19,9 @@ A Model Context Protocol (MCP) server that provides search functionality for Gle
 3. Open Developer Tools (F12) → Network tab
 4. Perform a search in Glean to trigger API requests
 5. Find any search API request in the Network tab
-6. Right-click the request → Copy → Copy as cURL
-7. Extract the entire `Cookie` header value from the cURL command
+6. Extract the entire `Cookie` header
+
+![Cookie Extraction Guide](docs/assets/readme-get-cookie.png)
 
 ### 2. Configure MCP in Cursor/VS Code
 
