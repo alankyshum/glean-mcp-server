@@ -3,6 +3,7 @@ Glean API client for making search requests.
 """
 import httpx
 import json
+import ssl
 from typing import Dict, Any, Optional, Callable
 from datetime import datetime
 import os
@@ -25,6 +26,10 @@ class GleanClient:
             cookies: Cookie string for authentication
             cookie_renewal_callback: Optional callback function to prompt for new cookies
         """
+        # Ensure HTTPS is used for secure communication
+        if not base_url.startswith('https://'):
+            raise ValueError("Base URL must use HTTPS for secure communication")
+
         self.base_url = base_url.rstrip('/')
         self.cookies = cookies
         self.cookie_renewal_callback = cookie_renewal_callback

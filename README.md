@@ -19,9 +19,8 @@ A Model Context Protocol (MCP) server that provides search functionality for Gle
 3. Open Developer Tools (F12) → Network tab
 4. Perform a search in Glean to trigger API requests
 5. Find any search API request in the Network tab
-6. Extract the entire `Cookie` header
-
-![Cookie Extraction Guide](docs/assets/readme-get-cookie.png)
+6. Right-click the request → Copy → Copy as cURL
+7. Extract the entire `Cookie` header value from the cURL command
 
 ### 2. Configure MCP in Cursor/VS Code
 
@@ -36,28 +35,15 @@ Add this to your MCP settings file (see `mcp-settings-example.json` for referenc
   "mcp": {
     "mcpServers": {
       "glean": {
-        "name": "glean-cookie",
-        "type": "stdio",
         "command": "docker",
         "args": [
-          "run",
-          "--rm",
-          "-i",
-          "--pull",
-          "always",
-          "-e",
-          "GLEAN_BASE_URL",
-          "-e",
-          "GLEAN_COOKIES",
-          "-e",
-          "GLEAN_TOOL_DESCRIPTION",
+          "run", "--rm", "-i",
+          "--pull", "always",
+          "-e", "GLEAN_BASE_URL=https://your-company.glean.com",
+          "-e", "GLEAN_COOKIES=your_cookie_string_here",
+          "-e", "GLEAN_TOOL_DESCRIPTION=Search your company's knowledge base",
           "ghcr.io/alankyshum/glean-mcp-server:latest"
-        ],
-        "env": {
-          "GLEAN_BASE_URL": "https://COMPANY_NAME-be.glean.com",
-          "GLEAN_TOOL_DESCRIPTION": "Search COMPANY_NAME internal knowledge",
-          "GLEAN_COOKIES": "you-cookie-string-here"
-        },
+        ]
       }
     }
   }
@@ -131,14 +117,14 @@ The research tool uses Glean's AI chat functionality to provide comprehensive an
 
 ## Configuration Options
 
-| Environment Variable | Required | Default | Description |
-|---------------------|----------|---------|-------------|
-| `GLEAN_BASE_URL` | **Yes** | - | Your Glean instance URL |
-| `GLEAN_COOKIES` | **Yes** | - | Authentication cookies from browser |
-| `GLEAN_TOOL_DESCRIPTION` | No | `"Search for internal company information"` | Custom description for the search tool |
-| `GLEAN_DEFAULT_PAGE_SIZE` | No | `14` | Default number of search results |
-| `GLEAN_DEFAULT_SNIPPET_SIZE` | No | `215` | Default snippet size for results |
-| `GLEAN_AUTO_OPEN_BROWSER` | No | `true` | Automatically open browser when cookies expire |
+| Environment Variable         | Required | Default                                     | Description                                    |
+|------------------------------|----------|---------------------------------------------|------------------------------------------------|
+| `GLEAN_BASE_URL`             | **Yes**  | -                                           | Your Glean instance URL                        |
+| `GLEAN_COOKIES`              | **Yes**  | -                                           | Authentication cookies from browser            |
+| `GLEAN_TOOL_DESCRIPTION`     | No       | `"Search for internal company information"` | Custom description for the search tool         |
+| `GLEAN_DEFAULT_PAGE_SIZE`    | No       | `14`                                        | Default number of search results               |
+| `GLEAN_DEFAULT_SNIPPET_SIZE` | No       | `215`                                       | Default snippet size for results               |
+| `GLEAN_AUTO_OPEN_BROWSER`    | No       | `true`                                      | Automatically open browser when cookies expire |
 
 ### Example with Custom Description
 ```json
