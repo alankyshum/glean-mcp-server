@@ -37,5 +37,5 @@ USER mcp-user
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import sys; sys.exit(0)"
 
-# Default command
-CMD ["python", "src/glean_mcp_server.py"]
+# Default command - use module execution for proper imports
+CMD ["python", "-m", "src.glean_mcp_server"]

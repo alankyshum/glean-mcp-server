@@ -21,8 +21,14 @@ from mcp.types import (
 from pydantic import AnyUrl
 from dotenv import load_dotenv
 
-from .glean_client import GleanClient, CookieExpiredError
-from .glean_filter import filter_glean_response
+try:
+    # Try relative imports first (for package usage)
+    from .glean_client import GleanClient, CookieExpiredError
+    from .glean_filter import filter_glean_response
+except ImportError:
+    # Fall back to absolute imports (for direct script execution)
+    from glean_client import GleanClient, CookieExpiredError
+    from glean_filter import filter_glean_response
 
 # Load environment variables
 load_dotenv()
