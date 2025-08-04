@@ -36,14 +36,28 @@ Add this to your MCP settings file (see `mcp-settings-example.json` for referenc
   "mcp": {
     "mcpServers": {
       "glean": {
+        "name": "glean-cookie",
+        "type": "stdio",
         "command": "docker",
         "args": [
-          "run", "--rm", "-i",
-          "--pull", "always",
-          "-e", "GLEAN_BASE_URL=https://your-company.glean.com",
-          "-e", "GLEAN_COOKIES=your_cookie_string_here",
+          "run",
+          "--rm",
+          "-i",
+          "--pull",
+          "always",
+          "-e",
+          "GLEAN_BASE_URL",
+          "-e",
+          "GLEAN_COOKIES",
+          "-e",
+          "GLEAN_TOOL_DESCRIPTION",
           "ghcr.io/alankyshum/glean-mcp-server:latest"
-        ]
+        ],
+        "env": {
+          "GLEAN_BASE_URL": "https://COMPANY_NAME-be.glean.com",
+          "GLEAN_TOOL_DESCRIPTION": "Search COMPANY_NAME internal knowledge",
+          "GLEAN_COOKIES": "you-cookie-string-here"
+        },
       }
     }
   }
