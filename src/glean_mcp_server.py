@@ -21,8 +21,8 @@ from mcp.types import (
 from pydantic import AnyUrl
 from dotenv import load_dotenv
 
-from glean_client import GleanClient, CookieExpiredError
-from glean_filter import filter_glean_response
+from .glean_client import GleanClient, CookieExpiredError
+from .glean_filter import filter_glean_response
 
 # Load environment variables
 load_dotenv()
@@ -205,6 +205,38 @@ async def handle_list_tools() -> list[Tool]:
                 },
                 "required": ["query"]
             }
+        ),
+        Tool(
+            name="read_documents",
+            description="Read documents from Glean by ID or URL to retrieve their full content",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "documentSpecs": {
+                        "type": "array",
+                        "description": "List of document specifications to retrieve",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string",
+                                    "description": "Glean Document ID"
+                                },
+                                "url": {
+                                    "type": "string",
+                                    "description": "Document URL"
+                                }
+                            },
+                            "anyOf": [
+                                {"required": ["id"]},
+                                {"required": ["url"]}
+                            ]
+                        },
+                        "minItems": 1
+                    }
+                },
+                "required": ["documentSpecs"]
+            }
         )
     ]
 
@@ -360,8 +392,166 @@ async def handle_call_tool(name: str, arguments: dict) -> list[TextContent | Ima
                         text=f"Error performing research: {str(e)}"
                     )
                 ]
+    elif name == "read_documents":
+        document_specs = arguments.get("documentSpecs")
+        if not document_specs:
+            raise ValueError("documentSpecs parameter is required")
+
+        # Validate document specs
+        for spec in document_specs:
+            if not isinstance(spec, dict):
+                raise ValueError("Each document spec must be an object")
+            if not spec.get("id") and not spec.get("url"):
+                raise ValueError("Each document spec must have either 'id' or 'url'")
+
+        try:
+            # Use the read_documents API
+            result = await glean_client.read_documents(document_specs)
+
+            # Format the response similar to the official implementation
+            formatted_result = format_documents_response(result)
+
+            return [
+                TextContent(
+                    type="text",
+                    text=formatted_result
+                )
+            ]
+        except CookieExpiredError as e:
+            # Handle cookie expiration with enhanced guidance
+            error_response = generate_auth_error_message()
+            error_response += f"\n\n⚠️ Automatic cookie renewal not available in MCP mode.\n\nTechnical details: {str(e)}"
+
+            return [
+                TextContent(
+                    type="text",
+                    text=error_response
+                )
+            ]
+        except httpx.HTTPStatusError as e:
+            # Handle HTTP status errors specifically
+            if e.response.status_code in [401, 403]:
+                error_response = generate_auth_error_message()
+                error_response += f"\n\nTechnical details: HTTP {e.response.status_code} - {e.response.reason_phrase}"
+
+                return [
+                    TextContent(
+                        type="text",
+                        text=error_response
+                    )
+                ]
+            else:
+                # Other HTTP errors
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"HTTP Error {e.response.status_code}: {str(e)}"
+                    )
+                ]
+        except Exception as e:
+            error_msg = str(e).lower()
+
+            # Check for authentication errors in general exceptions
+            if 'unauthorized' in error_msg or '401' in error_msg or '403' in error_msg:
+                error_response = generate_auth_error_message()
+                error_response += f"\n\nTechnical details: {str(e)}"
+
+                return [
+                    TextContent(
+                        type="text",
+                        text=error_response
+                    )
+                ]
+            else:
+                # Other errors (network, timeout, etc.)
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"Error reading documents: {str(e)}"
+                    )
+                ]
     else:
         raise ValueError(f"Unknown tool: {name}")
+
+
+def format_documents_response(documents_response: dict) -> str:
+    """
+    Format documents response into a human-readable text format.
+
+    Args:
+        documents_response: The raw documents response from Glean API
+
+    Returns:
+        Formatted documents as text
+    """
+    if not documents_response or not documents_response.get("documents"):
+        return "No documents found."
+
+    documents = documents_response["documents"]
+    if isinstance(documents, dict):
+        # Convert dict to list of documents
+        documents = list(documents.values())
+
+    if not documents:
+        return "No documents found."
+
+    formatted_documents = []
+
+    for index, doc in enumerate(documents):
+        title = doc.get("title", "No title")
+        url = doc.get("url", "")
+        doc_type = doc.get("docType", "Document")
+        datasource = doc.get("datasource", "Unknown source")
+
+        # Extract content
+        content = ""
+        if doc.get("content"):
+            if isinstance(doc["content"], dict):
+                if doc["content"].get("fullTextList"):
+                    content = "\n".join(doc["content"]["fullTextList"])
+                elif doc["content"].get("fullText"):
+                    content = doc["content"]["fullText"]
+            elif isinstance(doc["content"], str):
+                content = doc["content"]
+
+        if not content:
+            content = "No content available"
+
+        # Extract metadata
+        metadata = ""
+        if doc.get("metadata"):
+            if doc["metadata"].get("author", {}).get("name"):
+                metadata += f"Author: {doc['metadata']['author']['name']}\n"
+            if doc["metadata"].get("createTime"):
+                try:
+                    from datetime import datetime
+                    create_time = datetime.fromisoformat(doc["metadata"]["createTime"].replace("Z", "+00:00"))
+                    metadata += f"Created: {create_time.strftime('%Y-%m-%d')}\n"
+                except:
+                    metadata += f"Created: {doc['metadata']['createTime']}\n"
+            if doc["metadata"].get("updateTime"):
+                try:
+                    from datetime import datetime
+                    update_time = datetime.fromisoformat(doc["metadata"]["updateTime"].replace("Z", "+00:00"))
+                    metadata += f"Updated: {update_time.strftime('%Y-%m-%d')}\n"
+                except:
+                    metadata += f"Updated: {doc['metadata']['updateTime']}\n"
+
+        formatted_doc = f"""[{index + 1}] {title}
+Type: {doc_type}
+Source: {datasource}
+{metadata}URL: {url}
+
+Content:
+{content}"""
+
+        formatted_documents.append(formatted_doc)
+
+    total_documents = len(documents)
+    result = f"Retrieved {total_documents} document{'s' if total_documents != 1 else ''}:\n\n"
+    result += "\n\n---\n\n".join(formatted_documents)
+
+    return result
 
 
 async def main():

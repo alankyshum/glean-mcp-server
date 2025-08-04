@@ -4,7 +4,7 @@ Glean API client for making search requests.
 import httpx
 import json
 import ssl
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional, Callable, List
 from datetime import datetime
 import os
 
@@ -63,19 +63,51 @@ class GleanClient:
             True if cookies are valid, False otherwise
         """
         try:
-            # Make a minimal search request to test authentication
+            # Make a minimal search request to test authentication using the correct format
             url = f"{self.base_url}/api/v1/search"
+
+            # Add query parameters like in the curl command
+            params = {
+                "clientVersion": "fe-release-2025-07-29-7e37358",
+                "locale": "en"
+            }
+
             payload = {
                 "query": "test",
                 "pageSize": 1,
-                "requestOptions": {"responseHints": ["RESULTS"]},
-                "timeoutMillis": 5000
+                "requestOptions": {
+                    "responseHints": ["RESULTS"],
+                    "facetBucketSize": 10
+                },
+                "timeoutMillis": 5000,
+                "timestamp": "2025-01-27T00:00:00.000Z"
+            }
+
+            # Use headers that match the curl command
+            headers = {
+                'accept': '*/*',
+                'accept-language': 'en-US,en;q=0.9',
+                'cache-control': 'no-cache',
+                'content-type': 'application/json',
+                'cookie': self.cookies,  # Use lowercase 'cookie' header
+                'origin': 'https://app.glean.com',
+                'pragma': 'no-cache',
+                'priority': 'u=1, i',
+                'referer': 'https://app.glean.com/',
+                'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"macOS"',
+                'sec-fetch-dest': 'empty',
+                'sec-fetch-mode': 'cors',
+                'sec-fetch-site': 'same-site',
+                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
             }
 
             response = await self.client.post(
                 url,
                 json=payload,
-                headers={"Cookie": self.cookies},
+                headers=headers,
+                params=params,
                 timeout=5.0
             )
 
@@ -391,6 +423,65 @@ class GleanClient:
                         citation_num += 1
 
         return result.strip()
+
+    async def read_documents(self, document_specs: List[Dict[str, str]]) -> Dict[str, Any]:
+        """
+        Read documents from Glean by ID or URL.
+
+        Args:
+            document_specs: List of document specifications, each containing either 'id' or 'url'
+
+        Returns:
+            Dictionary containing the documents data
+        """
+        # Ensure we're authenticated before making the request
+        await self._ensure_authenticated()
+
+        # Use the correct endpoint format from the curl command
+        url = f"{self.base_url}/api/v1/getdocuments"
+
+        # Add query parameters like in the curl command
+        params = {
+            "clientVersion": "fe-release-2025-07-29-7e37358",
+            "locale": "en"
+        }
+
+        payload = {
+            "documentSpecs": document_specs,
+            "includeFields": ["DOCUMENT_CONTENT", "LAST_VIEWED_AT", "VISITORS_COUNT"]
+        }
+
+        # Use headers that match the curl command exactly
+        headers = {
+            'accept': '*/*',
+            'accept-language': 'en-US,en;q=0.9',
+            'cache-control': 'no-cache',
+            'content-type': 'application/json',
+            'cookie': self.cookies,  # Use lowercase 'cookie' header
+            'origin': 'https://app.glean.com',
+            'pragma': 'no-cache',
+            'priority': 'u=1, i',
+            'referer': 'https://app.glean.com/',
+            'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"macOS"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-site',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
+        }
+
+        try:
+            response = await self.client.post(url, json=payload, headers=headers, params=params)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 401:
+                raise CookieExpiredError("Authentication failed - cookies may have expired")
+            else:
+                raise Exception(f"HTTP error {e.response.status_code}: {e.response.text}")
+        except Exception as e:
+            raise Exception(f"Request failed: {str(e)}")
 
     async def close(self):
         """Close the HTTP client."""
