@@ -2,8 +2,20 @@
 
 A Model Context Protocol (MCP) server that provides search functionality for Glean knowledge bases in Cursor and VS Code.
 
+## 🚀 Latest Release: v1.7.1
+
+**Complete Feature Parity with Official Glean MCP Server!**
+
+✅ **Fixed**: Docker container import error from v1.7.0
+✅ **New**: `read_documents` tool for full document retrieval by ID or URL
+✅ **Complete**: All three core tools from the official Glean MCP server
+
+[📋 View Release Notes](https://github.com/alankyshum/glean-mcp-server/releases/tag/v1.7.1) | [🐳 Container Images](https://github.com/alankyshum/glean-mcp-server/pkgs/container/glean-mcp-server)
+
 ## ✨ Key Features
 
+- **Complete Feature Parity**: All three tools from the official Glean MCP server
+- **Document Retrieval**: Full document content by ID or URL (Google Docs, Sheets, etc.)
 - **AI-Powered Research**: Get comprehensive answers with citations using Glean's chat AI
 - **Fast Search**: Efficient search across your company's knowledge base
 - **Optimized Responses**: Advanced filtering reduces response size by 85-98% while preserving all useful information
@@ -21,6 +33,9 @@ A Model Context Protocol (MCP) server that provides search functionality for Gle
 5. Find any search API request in the Network tab
 6. Right-click the request → Copy → Copy as cURL
 7. Extract the entire `Cookie` header value from the cURL command
+
+See this image:
+![Get Cookies](./docs/assets/readme-get-cookies.png)
 
 ### 2. Configure MCP in Cursor/VS Code
 
@@ -93,11 +108,11 @@ The configuration above uses `--pull always` to automatically get the latest con
 1. **Restart Cursor/VS Code** - The next search will automatically pull the latest image
 2. **Manual update** (optional): `docker pull ghcr.io/alankyshum/glean-mcp-server:latest`
 
-For specific versions, replace `:latest` with `:v1.1.0` or your desired version tag.
+For specific versions, replace `:latest` with `:v1.7.1` or your desired version tag.
 
 ## Usage
 
-Once configured, you can interact with your Glean knowledge base directly from Cursor/VS Code using two tools:
+Once configured, you can interact with your Glean knowledge base directly from Cursor/VS Code using three powerful tools:
 
 ### Search Tool
 - **Tool name:** `glean_search`
@@ -113,7 +128,16 @@ Once configured, you can interact with your Glean knowledge base directly from C
 - **Parameters:**
   - `query` (required): Your research question or topic
 
-The research tool uses Glean's AI chat functionality to provide comprehensive answers with citations, while the search tool returns raw search results for more targeted document discovery.
+### Document Reader Tool ✨ **NEW in v1.7.0**
+- **Tool name:** `read_documents`
+- **Purpose:** Retrieve full document content by ID or URL
+- **Parameters:**
+  - `documentSpecs` (required): Array of document specifications
+    - Each spec can have either `id` (Glean document ID) or `url` (document URL)
+- **Supports:** Google Docs, Sheets, Slides, and other document types
+- **Features:** Full content extraction, metadata parsing, human-readable formatting
+
+The research tool uses Glean's AI chat functionality to provide comprehensive answers with citations, the search tool returns raw search results for targeted document discovery, and the document reader tool retrieves complete document content for detailed analysis.
 
 ## Configuration Options
 
