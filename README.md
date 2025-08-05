@@ -35,7 +35,7 @@ A Model Context Protocol (MCP) server that provides search functionality for Gle
 7. Extract the entire `Cookie` header value from the cURL command
 
 See this image:
-![Get Cookies](./docs/assets/readme-get-cookies.png)
+![Get Cookies](./docs/assets/readme-get-cookie.png)
 
 ### 2. Configure MCP in Cursor/VS Code
 
