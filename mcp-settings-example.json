@@ -6,7 +6,7 @@
         "args": [
           "run", "--rm", "-i",
           "--pull", "always",
-          "-e", "GLEAN_BASE_URL=https://your-company.glean.com",
+          "-e", "GLEAN_BASE_URL=https://your-company-be.glean.com",
           "-e", "GLEAN_COOKIES=your_cookie_string_here",
           "-e", "GLEAN_TOOL_DESCRIPTION=Search your company's internal knowledge base",
           "-e", "GLEAN_AUTO_OPEN_BROWSER=true",

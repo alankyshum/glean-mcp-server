@@ -22,7 +22,7 @@ class GleanClient:
         Initialize the Glean client.
 
         Args:
-            base_url: Base URL for Glean API (e.g., https://your-company.glean.com)
+            base_url: Base URL for Glean API (e.g., https://your-company-be.glean.com)
             cookies: Cookie string for authentication
             cookie_renewal_callback: Optional callback function to prompt for new cookies
         """

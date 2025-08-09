@@ -26,7 +26,7 @@ A Model Context Protocol (MCP) server that provides search functionality for Gle
 
 ### 1. Get Authentication Cookies
 
-1. Open your browser and navigate to your Glean instance (e.g., `https://company.glean.com`)
+1. Open your browser and navigate to your Glean instance (e.g., `https://company-be.glean.com`)
 2. Make sure you're logged in
 3. Open Developer Tools (F12) → Network tab
 4. Perform a search in Glean to trigger API requests
@@ -54,7 +54,7 @@ Add this to your MCP settings file (see `mcp-settings-example.json` for referenc
         "args": [
           "run", "--rm", "-i",
           "--pull", "always",
-          "-e", "GLEAN_BASE_URL=https://your-company.glean.com",
+          "-e", "GLEAN_BASE_URL=https://your-company-be.glean.com",
           "-e", "GLEAN_COOKIES=your_cookie_string_here",
           "-e", "GLEAN_TOOL_DESCRIPTION=Search your company's knowledge base",
           "ghcr.io/alankyshum/glean-mcp-server:latest"
@@ -66,7 +66,7 @@ Add this to your MCP settings file (see `mcp-settings-example.json` for referenc
 ```
 
 **Replace:**
-- `your-company.glean.com` with your actual Glean instance URL
+- `your-company-be.glean.com` with your actual Glean instance URL
 - `your_cookie_string_here` with the cookies from step 1
 
 ### 3. Alternative: Local Installation
@@ -78,7 +78,7 @@ If you prefer not to use Docker:
 pip install -r requirements.txt
 
 # Set environment variables
-export GLEAN_BASE_URL=https://your-company.glean.com
+export GLEAN_BASE_URL=https://your-company-be.glean.com
 export GLEAN_COOKIES="your_cookie_string"
 
 # Configure MCP to use local installation
@@ -92,7 +92,7 @@ export GLEAN_COOKIES="your_cookie_string"
         "command": "python",
         "args": ["/path/to/glean-mcp-server/src/glean_mcp_server.py"],
         "env": {
-          "GLEAN_BASE_URL": "https://your-company.glean.com",
+          "GLEAN_BASE_URL": "https://your-company-be.glean.com",
           "GLEAN_COOKIES": "your_cookie_string_here"
         }
       }

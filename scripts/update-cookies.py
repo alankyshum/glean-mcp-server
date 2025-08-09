@@ -18,7 +18,7 @@ def update_env_file(cookies: str, env_path: str = ".env"):
         print(f"Creating new .env file at {env_file}")
         with open(env_file, 'w') as f:
             f.write("# Glean MCP Server Configuration\n")
-            f.write("GLEAN_BASE_URL=https://your-company.glean.com\n")
+            f.write("GLEAN_BASE_URL=https://your-company-be.glean.com\n")
             f.write(f"GLEAN_COOKIES={cookies}\n")
         return
     

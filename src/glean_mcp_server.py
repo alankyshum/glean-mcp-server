@@ -68,17 +68,15 @@ def generate_auth_error_message() -> str:
     clean_url = base_url
     if clean_url.endswith('/api/v1/search'):
         clean_url = clean_url.replace('/api/v1/search', '')
-    if clean_url.endswith('-be.glean.com'):
-        clean_url = clean_url.replace('-be.glean.com', '.glean.com')
 
     # Extract company name from URL for personalization
     company_name = "your company"
-    if ".glean.com" in clean_url:
+    if "-be.glean.com" in clean_url:
         try:
-            # Extract company name from URL like https://company.glean.com
+            # Extract company name from URL like https://company-be.glean.com
             company_part = clean_url.replace("https://", "").replace("http://", "")
-            if company_part.endswith(".glean.com"):
-                company_name = company_part.replace(".glean.com", "")
+            if company_part.endswith("-be.glean.com"):
+                company_name = company_part.replace("-be.glean.com", "")
         except:
             pass
 
