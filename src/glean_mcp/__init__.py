@@ -14,5 +14,12 @@ while internally using the async ``GleanClient`` for efficient IO.
 """
 
 from .api import glean_search, glean_chat, glean_read_documents  # noqa: F401
+from .glean_client import GleanClient, CookieExpiredError  # noqa: F401
 
-__all__ = ["glean_search", "glean_chat", "glean_read_documents"]
+__all__ = [
+	"glean_search",
+	"glean_chat",
+	"glean_read_documents",
+	"GleanClient",
+	"CookieExpiredError",
+]

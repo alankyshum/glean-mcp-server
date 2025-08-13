@@ -108,7 +108,20 @@ def glean_chat(message: str) -> str:
     except CookieExpiredError as e:  # pragma: no cover
         return _error_json(str(e), status=401)
     except Exception as e:  # pragma: no cover
-        return _error_json("chat_failed", detail=str(e))
+        status = None
+        detail = str(e)
+        try:
+            resp = getattr(e, "response", None)
+            if resp is not None:
+                status = getattr(resp, "status_code", None)
+                # Prefer JSON body if available, else text
+                try:
+                    detail = resp.text
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        return _error_json("chat_failed", status=status, detail=detail)
 
 
 def glean_read_documents(specs: List[Dict[str, str]]) -> str:
@@ -127,4 +140,4 @@ def glean_read_documents(specs: List[Dict[str, str]]) -> str:
         return _error_json("read_documents_failed", detail=str(e))
 
 
-+__all__ = ["glean_search", "glean_chat", "glean_read_documents"]
+__all__ = ["glean_search", "glean_chat", "glean_read_documents"]
