@@ -34,12 +34,19 @@ jobs:
 
       - name: Check version sync
         run: |
-          PKG_VER=$(grep '^version =' pyproject.toml | head -1 | cut -d '"' -f2)
-          INIT_VER=$(grep '__version__' src/glean_mcp/__init__.py | cut -d '"' -f2)
+          echo "GITHUB_REF=$GITHUB_REF"
+          PKG_VER=$(grep -E '^version\s*=\s*"' pyproject.toml | head -1 | sed -E 's/.*version\s*=\s*"([^"]+)".*/\1/')
+          INIT_VER=$(grep -E '__version__\s*=\s*"' src/glean_mcp/__init__.py | sed -E 's/.*__version__\s*=\s*"([^"]+)".*/\1/')
+          echo "Detected pyproject version: '$PKG_VER'"
+          echo "Detected __init__ version: '$INIT_VER'"
+          echo "Tag version: '${{ steps.tag.outputs.version }}'"
+          if [ -z "$PKG_VER" ] || [ -z "$INIT_VER" ]; then
+            echo "Failed to parse versions" >&2; exit 1; fi
           if [ "$PKG_VER" != "${{ steps.tag.outputs.version }}" ]; then
             echo "pyproject.toml version $PKG_VER does not match tag version ${{ steps.tag.outputs.version }}" >&2; exit 1; fi
           if [ "$INIT_VER" != "${{ steps.tag.outputs.version }}" ]; then
             echo "__init__ version $INIT_VER does not match tag version ${{ steps.tag.outputs.version }}" >&2; exit 1; fi
+          echo "Version synchronization OK"
 
       - name: Install build deps
         run: |
@@ -60,6 +67,7 @@ jobs:
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           skip-existing: true
+          verbose: true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

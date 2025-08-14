@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "glean-mcp"
-version = "0.1.1"  # Keep in sync with glean_mcp.__init__.__version__
+version = "0.1.2"  # Keep in sync with glean_mcp.__init__.__version__
 description = "Python client + MCP server adapter for Glean (search, chat, read documents). Provides a reusable HTTP client plus simple sync helper functions."
 readme = "README.md"
 license = "MIT"
