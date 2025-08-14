@@ -36,7 +36,11 @@ from glean_client import GleanClient
 from glean_filter import filter_glean_response
 
 
-async def test_query(client: GleanClient, query: str, page_size: int = 5, max_snippet_size: int = 200, save_results: bool = True):
+# NOTE: This file is a utility script, not a pytest test module. Provide a dummy
+# variable to discourage pytest from treating async helpers as tests.
+__all__ = ["main"]
+
+async def _test_query(client: GleanClient, query: str, page_size: int = 5, max_snippet_size: int = 200, save_results: bool = True):
     """Test a single query and return analysis."""
     print(f"\n{'='*60}")
     print(f"Testing query: '{query}'")
@@ -191,7 +195,7 @@ async def main():
         
         results = []
         for query in args.queries:
-            result = await test_query(
+            result = await _test_query(
                 client, 
                 query, 
                 page_size=args.page_size,

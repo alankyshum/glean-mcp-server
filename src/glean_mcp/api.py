@@ -127,4 +127,4 @@ def glean_read_documents(specs: List[Dict[str, str]]) -> str:
         return _error_json("read_documents_failed", detail=str(e))
 
 
-+__all__ = ["glean_search", "glean_chat", "glean_read_documents"]
+__all__ = ["glean_search", "glean_chat", "glean_read_documents"]
