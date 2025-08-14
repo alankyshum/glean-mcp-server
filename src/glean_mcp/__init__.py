@@ -17,7 +17,7 @@ from .api import glean_search, glean_chat, glean_read_documents  # noqa: F401
 
 # Keep version in sync with pyproject.toml. Avoid importing importlib.metadata at
 # runtime for speed; update manually during release bumps.
-__version__ = "1.7.1"
+__version__ = "2.0.0"
 
 __all__ = [
 	"glean_search",
