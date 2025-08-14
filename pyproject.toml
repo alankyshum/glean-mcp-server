@@ -4,10 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "glean-mcp"
-version = "0.1.0"
-description = "Python client + MCP server adapter for Glean (search, chat, read documents)."
+version = "0.1.1"  # Keep in sync with glean_mcp.__init__.__version__
+description = "Python client + MCP server adapter for Glean (search, chat, read documents). Provides a reusable HTTP client plus simple sync helper functions."
 readme = "README.md"
-license = {file = "LICENSE"}
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
   {name = "Alan Shum"}
 ]
@@ -16,9 +17,11 @@ keywords = ["glean", "mcp", "model-context-protocol", "search"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "License :: OSI Approved :: MIT License",
   "Intended Audience :: Developers",
   "Topic :: Software Development :: Libraries",
+  "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+  "Operating System :: OS Independent",
+  "Typing :: Typed",
 ]
 dependencies = [
   "httpx>=0.25.0,<0.28.0",
@@ -27,10 +30,26 @@ dependencies = [
   "mcp>=0.9.0,<1.0.0"
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0,<9",
+  "pytest-asyncio>=0.23,<0.24",
+  "ruff>=0.5.0,<0.6.0",
+  "build>=1.2.0,<2",
+]
+perf = [
+  "uvloop>=0.19.0; platform_system == 'Linux' or platform_system == 'Darwin'",
+]
+
+[project.scripts]
+glean-mcp = "glean_mcp._cli:main"
+
 [project.urls]
 Homepage = "https://github.com/alankyshum/glean-mcp-server"
 Repository = "https://github.com/alankyshum/glean-mcp-server"
 Issues = "https://github.com/alankyshum/glean-mcp-server/issues"
+Changelog = "https://github.com/alankyshum/glean-mcp-server/releases"
+Documentation = "https://github.com/alankyshum/glean-mcp-server#readme"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

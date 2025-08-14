@@ -15,4 +15,13 @@ while internally using the async ``GleanClient`` for efficient IO.
 
 from .api import glean_search, glean_chat, glean_read_documents  # noqa: F401
 
-__all__ = ["glean_search", "glean_chat", "glean_read_documents"]
+# Keep version in sync with pyproject.toml. Avoid importing importlib.metadata at
+# runtime for speed; update manually during release bumps.
+__version__ = "0.1.1"
+
+__all__ = [
+	"glean_search",
+	"glean_chat",
+	"glean_read_documents",
+	"__version__",
+]
