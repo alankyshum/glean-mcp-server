@@ -25,8 +25,14 @@ RUN pip install --no-cache-dir -r requirements.txt \
     && apk del .build-deps \
     && rm -rf /root/.cache/pip
 
-# Copy source code
+# Copy source code and project metadata for editable install
+COPY pyproject.toml README.md LICENSE ./
 COPY src/ ./src/
+COPY scripts/ ./scripts/
+
+# Install the package itself so 'glean_mcp' is on PYTHONPATH
+RUN pip install --no-cache-dir . \
+    && rm -rf /root/.cache/pip
 
 # Create a non-root user (alpine style)
 RUN adduser -D -s /bin/sh mcp-user \
@@ -37,5 +43,5 @@ USER mcp-user
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import sys; sys.exit(0)"
 
-# Default command - use module execution for proper imports
-CMD ["python", "-m", "src.glean_mcp_server"]
+# Default command - execute server module (installed entry context)
+CMD ["python", "-m", "glean_mcp.server"]

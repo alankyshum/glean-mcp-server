@@ -1,6 +1,15 @@
+"""MCP server entrypoint for Glean.
+
+Run with:
+    python -m glean_mcp.server
+
+Implements the tools:
+  - glean_search
+  - glean_research
+  - read_documents
 """
-Glean MCP Server - A Model Context Protocol server for Glean search functionality.
-"""
+from __future__ import annotations
+
 import asyncio
 import os
 import sys
@@ -8,6 +17,7 @@ import webbrowser
 from typing import Any
 import json
 import httpx
+import time
 
 from mcp.server.models import InitializationOptions
 from mcp.server import NotificationOptions, Server
@@ -21,72 +31,47 @@ from mcp.types import (
 from pydantic import AnyUrl
 from dotenv import load_dotenv
 
-try:
-    # Try relative imports first (for package usage)
-    from .glean_client import GleanClient, CookieExpiredError
-    from .glean_filter import filter_glean_response
-except ImportError:
-    # Fall back to absolute imports (for direct script execution)
-    from glean_client import GleanClient, CookieExpiredError
-    from glean_filter import filter_glean_response
+from .glean_client import GleanClient, CookieExpiredError  # type: ignore
+from .glean_filter import filter_glean_response  # type: ignore
 
-# Load environment variables
 load_dotenv()
 
-# Get configuration from environment variables
 DEFAULT_PAGE_SIZE = int(os.getenv("GLEAN_DEFAULT_PAGE_SIZE", "14"))
 DEFAULT_SNIPPET_SIZE = int(os.getenv("GLEAN_DEFAULT_SNIPPET_SIZE", "215"))
 TOOL_DESCRIPTION = os.getenv("GLEAN_TOOL_DESCRIPTION", "Search for internal company information")
 AUTO_OPEN_BROWSER = os.getenv("GLEAN_AUTO_OPEN_BROWSER", "true").lower() == "true"
 
-# Initialize the MCP server
 server = Server("glean-mcp-server")
-
-# Global client instance
-glean_client: GleanClient = None
+glean_client: GleanClient | None = None
 
 
 def prompt_for_new_cookies() -> str:
-    """
-    Prompt the user for new cookies when the current ones expire.
-
-    Returns:
-        New cookie string provided by the user
-    """
-    # For MCP, we'll return a special message that instructs the user
-    # Since MCP doesn't support direct user input, we provide clear instructions
     raise CookieExpiredError(
         "Cookies have expired. Please update your MCP configuration with fresh cookies and restart."
     )
 
 
 def generate_auth_error_message() -> str:
-    """Generate a personalized authentication error message and optionally open browser."""
     base_url = os.getenv("GLEAN_BASE_URL", "your-glean-instance.com")
-
-    # Clean up the URL to get the main domain
     clean_url = base_url
     if clean_url.endswith('/api/v1/search'):
         clean_url = clean_url.replace('/api/v1/search', '')
 
-    # Extract company name from URL for personalization
     company_name = "your company"
     if "-be.glean.com" in clean_url:
         try:
-            # Extract company name from URL like https://company-be.glean.com
             company_part = clean_url.replace("https://", "").replace("http://", "")
             if company_part.endswith("-be.glean.com"):
                 company_name = company_part.replace("-be.glean.com", "")
-        except:
+        except:  # noqa: E722
             pass
 
-    # Try to open the browser automatically (if enabled)
     browser_opened = False
     if AUTO_OPEN_BROWSER:
         try:
             webbrowser.open(clean_url)
             browser_opened = True
-        except:
+        except:  # noqa: E722
             pass
 
     browser_message = "🌐 Opening your Glean page in browser..." if browser_opened else ""
@@ -125,7 +110,6 @@ Your Glean instance: {clean_url}"""
 
 @server.list_resources()
 async def handle_list_resources() -> list[Resource]:
-    """List available resources."""
     return [
         Resource(
             uri=AnyUrl("glean://search"),
@@ -144,29 +128,25 @@ async def handle_list_resources() -> list[Resource]:
 
 @server.read_resource()
 async def handle_read_resource(uri: AnyUrl) -> str:
-    """Read a specific resource."""
     if uri.scheme != "glean":
         raise ValueError(f"Unsupported URI scheme: {uri.scheme}")
-
     if uri.path == "/search":
         return json.dumps({
             "description": "Glean search resource",
             "usage": "Use the glean_search tool to perform searches",
             "available_tools": ["glean_search"]
         })
-    elif uri.path == "/research":
+    if uri.path == "/research":
         return json.dumps({
             "description": "Glean research resource",
             "usage": "Use the glean_research tool to get AI-powered answers from your knowledge base",
             "available_tools": ["glean_research"]
         })
-    else:
-        raise ValueError(f"Unknown resource path: {uri.path}")
+    raise ValueError(f"Unknown resource path: {uri.path}")
 
 
 @server.list_tools()
 async def handle_list_tools() -> list[Tool]:
-    """List available tools."""
     return [
         Tool(
             name="glean_search",
@@ -174,10 +154,7 @@ async def handle_list_tools() -> list[Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "The search query to execute"
-                    },
+                    "query": {"type": "string", "description": "The search query to execute"},
                     "page_size": {
                         "type": "integer",
                         "description": f"Number of results to return (default: {DEFAULT_PAGE_SIZE}, configurable via GLEAN_DEFAULT_PAGE_SIZE)",
@@ -202,10 +179,7 @@ async def handle_list_tools() -> list[Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "The research question or topic to investigate"
-                    }
+                    "query": {"type": "string", "description": "The research question or topic to investigate"}
                 },
                 "required": ["query"]
             }
@@ -222,14 +196,8 @@ async def handle_list_tools() -> list[Tool]:
                         "items": {
                             "type": "object",
                             "properties": {
-                                "id": {
-                                    "type": "string",
-                                    "description": "Glean Document ID"
-                                },
-                                "url": {
-                                    "type": "string",
-                                    "description": "Document URL"
-                                }
+                                "id": {"type": "string", "description": "Glean Document ID"},
+                                "url": {"type": "string", "description": "Document URL"}
                             },
                             "anyOf": [
                                 {"required": ["id"]},
@@ -247,267 +215,109 @@ async def handle_list_tools() -> list[Tool]:
 
 @server.call_tool()
 async def handle_call_tool(name: str, arguments: dict) -> list[TextContent | ImageContent | EmbeddedResource]:
-    """Handle tool calls."""
     if name == "glean_search":
         query = arguments.get("query")
         if not query:
             raise ValueError("Query parameter is required")
-
         page_size = arguments.get("page_size", DEFAULT_PAGE_SIZE)
         max_snippet_size = arguments.get("max_snippet_size", DEFAULT_SNIPPET_SIZE)
-
         try:
-            results = await glean_client.search(
+            results = await glean_client.search(  # type: ignore[union-attr]
                 query=query,
                 page_size=page_size,
                 max_snippet_size=max_snippet_size
             )
-
-            # Filter the results to remove unnecessary data
             filtered_results = filter_glean_response(results)
-
-            # Add query information
             filtered_results["query"] = query
-
-            return [
-                TextContent(
-                    type="text",
-                    text=json.dumps(filtered_results, indent=2, ensure_ascii=False)
-                )
-            ]
+            return [TextContent(type="text", text=json.dumps(filtered_results, indent=2, ensure_ascii=False))]
         except CookieExpiredError as e:
-            # Handle cookie expiration with enhanced guidance
             error_response = generate_auth_error_message()
             error_response += f"\n\n⚠️ Automatic cookie renewal not available in MCP mode.\n\nTechnical details: {str(e)}"
-
-            return [
-                TextContent(
-                    type="text",
-                    text=error_response
-                )
-            ]
-        except httpx.HTTPStatusError as e:
-            # Handle HTTP status errors specifically
+            return [TextContent(type="text", text=error_response)]
+        except httpx.HTTPStatusError as e:  # pragma: no cover - network path
             if e.response.status_code in [401, 403]:
                 error_response = generate_auth_error_message()
                 error_response += f"\n\nTechnical details: HTTP {e.response.status_code} - {e.response.reason_phrase}"
-
-                return [
-                    TextContent(
-                        type="text",
-                        text=error_response
-                    )
-                ]
-            else:
-                # Other HTTP errors
-                return [
-                    TextContent(
-                        type="text",
-                        text=f"HTTP Error {e.response.status_code}: {str(e)}"
-                    )
-                ]
-        except Exception as e:
+                return [TextContent(type="text", text=error_response)]
+            return [TextContent(type="text", text=f"HTTP Error {e.response.status_code}: {str(e)}")]
+        except Exception as e:  # noqa: BLE001
             error_msg = str(e).lower()
-
-            # Check for authentication errors in general exceptions
             if 'unauthorized' in error_msg or '401' in error_msg or '403' in error_msg:
                 error_response = generate_auth_error_message()
                 error_response += f"\n\nTechnical details: {str(e)}"
-
-                return [
-                    TextContent(
-                        type="text",
-                        text=error_response
-                    )
-                ]
-            else:
-                # Other errors (network, timeout, etc.)
-                return [
-                    TextContent(
-                        type="text",
-                        text=f"Error performing search: {str(e)}"
-                    )
-                ]
-    elif name == "glean_research":
+                return [TextContent(type="text", text=error_response)]
+            return [TextContent(type="text", text=f"Error performing search: {str(e)}")]
+    if name == "glean_research":
         query = arguments.get("query")
         if not query:
             raise ValueError("Query parameter is required")
-
         try:
-            # Use the chat API for research
-            result = await glean_client.chat(query=query)
-
-            return [
-                TextContent(
-                    type="text",
-                    text=result
-                )
-            ]
+            result = await glean_client.chat(query=query)  # type: ignore[union-attr]
+            return [TextContent(type="text", text=result)]
         except CookieExpiredError as e:
-            # Handle cookie expiration with enhanced guidance
             error_response = generate_auth_error_message()
             error_response += f"\n\n⚠️ Automatic cookie renewal not available in MCP mode.\n\nTechnical details: {str(e)}"
-
-            return [
-                TextContent(
-                    type="text",
-                    text=error_response
-                )
-            ]
-        except httpx.HTTPStatusError as e:
-            # Handle HTTP status errors specifically
+            return [TextContent(type="text", text=error_response)]
+        except httpx.HTTPStatusError as e:  # pragma: no cover - network path
             if e.response.status_code in [401, 403]:
                 error_response = generate_auth_error_message()
                 error_response += f"\n\nTechnical details: HTTP {e.response.status_code} - {e.response.reason_phrase}"
-
-                return [
-                    TextContent(
-                        type="text",
-                        text=error_response
-                    )
-                ]
-            else:
-                # Other HTTP errors
-                return [
-                    TextContent(
-                        type="text",
-                        text=f"HTTP Error {e.response.status_code}: {str(e)}"
-                    )
-                ]
-        except Exception as e:
+                return [TextContent(type="text", text=error_response)]
+            return [TextContent(type="text", text=f"HTTP Error {e.response.status_code}: {str(e)}")]
+        except Exception as e:  # noqa: BLE001
             error_msg = str(e).lower()
-
-            # Check for authentication errors in general exceptions
             if 'unauthorized' in error_msg or '401' in error_msg or '403' in error_msg:
                 error_response = generate_auth_error_message()
                 error_response += f"\n\nTechnical details: {str(e)}"
-
-                return [
-                    TextContent(
-                        type="text",
-                        text=error_response
-                    )
-                ]
-            else:
-                # Other errors (network, timeout, etc.)
-                return [
-                    TextContent(
-                        type="text",
-                        text=f"Error performing research: {str(e)}"
-                    )
-                ]
-    elif name == "read_documents":
+                return [TextContent(type="text", text=error_response)]
+            return [TextContent(type="text", text=f"Error performing research: {str(e)}")]
+    if name == "read_documents":
         document_specs = arguments.get("documentSpecs")
         if not document_specs:
             raise ValueError("documentSpecs parameter is required")
-
-        # Validate document specs
         for spec in document_specs:
             if not isinstance(spec, dict):
                 raise ValueError("Each document spec must be an object")
             if not spec.get("id") and not spec.get("url"):
                 raise ValueError("Each document spec must have either 'id' or 'url'")
-
         try:
-            # Use the read_documents API
-            result = await glean_client.read_documents(document_specs)
-
-            # Format the response similar to the official implementation
+            result = await glean_client.read_documents(document_specs)  # type: ignore[union-attr]
             formatted_result = format_documents_response(result)
-
-            return [
-                TextContent(
-                    type="text",
-                    text=formatted_result
-                )
-            ]
+            return [TextContent(type="text", text=formatted_result)]
         except CookieExpiredError as e:
-            # Handle cookie expiration with enhanced guidance
             error_response = generate_auth_error_message()
             error_response += f"\n\n⚠️ Automatic cookie renewal not available in MCP mode.\n\nTechnical details: {str(e)}"
-
-            return [
-                TextContent(
-                    type="text",
-                    text=error_response
-                )
-            ]
-        except httpx.HTTPStatusError as e:
-            # Handle HTTP status errors specifically
+            return [TextContent(type="text", text=error_response)]
+        except httpx.HTTPStatusError as e:  # pragma: no cover - network path
             if e.response.status_code in [401, 403]:
                 error_response = generate_auth_error_message()
                 error_response += f"\n\nTechnical details: HTTP {e.response.status_code} - {e.response.reason_phrase}"
-
-                return [
-                    TextContent(
-                        type="text",
-                        text=error_response
-                    )
-                ]
-            else:
-                # Other HTTP errors
-                return [
-                    TextContent(
-                        type="text",
-                        text=f"HTTP Error {e.response.status_code}: {str(e)}"
-                    )
-                ]
-        except Exception as e:
+                return [TextContent(type="text", text=error_response)]
+            return [TextContent(type="text", text=f"HTTP Error {e.response.status_code}: {str(e)}")]
+        except Exception as e:  # noqa: BLE001
             error_msg = str(e).lower()
-
-            # Check for authentication errors in general exceptions
             if 'unauthorized' in error_msg or '401' in error_msg or '403' in error_msg:
                 error_response = generate_auth_error_message()
                 error_response += f"\n\nTechnical details: {str(e)}"
-
-                return [
-                    TextContent(
-                        type="text",
-                        text=error_response
-                    )
-                ]
-            else:
-                # Other errors (network, timeout, etc.)
-                return [
-                    TextContent(
-                        type="text",
-                        text=f"Error reading documents: {str(e)}"
-                    )
-                ]
-    else:
-        raise ValueError(f"Unknown tool: {name}")
+                return [TextContent(type="text", text=error_response)]
+            return [TextContent(type="text", text=f"Error reading documents: {str(e)}")]
+    raise ValueError(f"Unknown tool: {name}")
 
 
 def format_documents_response(documents_response: dict) -> str:
-    """
-    Format documents response into a human-readable text format.
-
-    Args:
-        documents_response: The raw documents response from Glean API
-
-    Returns:
-        Formatted documents as text
-    """
     if not documents_response or not documents_response.get("documents"):
         return "No documents found."
-
     documents = documents_response["documents"]
     if isinstance(documents, dict):
-        # Convert dict to list of documents
         documents = list(documents.values())
-
     if not documents:
         return "No documents found."
-
-    formatted_documents = []
-
+    formatted_documents: list[str] = []
     for index, doc in enumerate(documents):
         title = doc.get("title", "No title")
         url = doc.get("url", "")
         doc_type = doc.get("docType", "Document")
         datasource = doc.get("datasource", "Unknown source")
-
-        # Extract content
         content = ""
         if doc.get("content"):
             if isinstance(doc["content"], dict):
@@ -517,11 +327,8 @@ def format_documents_response(documents_response: dict) -> str:
                     content = doc["content"]["fullText"]
             elif isinstance(doc["content"], str):
                 content = doc["content"]
-
         if not content:
             content = "No content available"
-
-        # Extract metadata
         metadata = ""
         if doc.get("metadata"):
             if doc["metadata"].get("author", {}).get("name"):
@@ -531,16 +338,15 @@ def format_documents_response(documents_response: dict) -> str:
                     from datetime import datetime
                     create_time = datetime.fromisoformat(doc["metadata"]["createTime"].replace("Z", "+00:00"))
                     metadata += f"Created: {create_time.strftime('%Y-%m-%d')}\n"
-                except:
+                except:  # noqa: E722
                     metadata += f"Created: {doc['metadata']['createTime']}\n"
             if doc["metadata"].get("updateTime"):
                 try:
                     from datetime import datetime
                     update_time = datetime.fromisoformat(doc["metadata"]["updateTime"].replace("Z", "+00:00"))
                     metadata += f"Updated: {update_time.strftime('%Y-%m-%d')}\n"
-                except:
+                except:  # noqa: E722
                     metadata += f"Updated: {doc['metadata']['updateTime']}\n"
-
         formatted_doc = f"""[{index + 1}] {title}
 Type: {doc_type}
 Source: {datasource}
@@ -548,60 +354,65 @@ Source: {datasource}
 
 Content:
 {content}"""
-
         formatted_documents.append(formatted_doc)
-
     total_documents = len(documents)
     result = f"Retrieved {total_documents} document{'s' if total_documents != 1 else ''}:\n\n"
     result += "\n\n---\n\n".join(formatted_documents)
-
     return result
 
 
-async def main():
-    """Main entry point for the server."""
+async def main():  # pragma: no cover - runtime entry
     global glean_client
-
-    # Get configuration from environment variables
     base_url = os.getenv("GLEAN_BASE_URL")
     cookies = os.getenv("GLEAN_COOKIES")
-
     if not base_url:
         raise ValueError("GLEAN_BASE_URL environment variable is required")
     if not cookies:
         raise ValueError("GLEAN_COOKIES environment variable is required")
-
-    # Initialize the Glean client with cookie renewal callback
-    glean_client = GleanClient(
-        base_url=base_url,
-        cookies=cookies,
-        cookie_renewal_callback=prompt_for_new_cookies
-    )
-
-    # Run the server using stdio transport
+    start_ts = time.time()
+    print(f"[glean-mcp-server] Starting with base_url={base_url} len(cookies)={len(cookies)}", file=sys.stderr)
+    glean_client = GleanClient(base_url=base_url, cookies=cookies, cookie_renewal_callback=prompt_for_new_cookies)
     from mcp.server.stdio import stdio_server
-
     async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                server_name="glean-mcp-server",
-                server_version="1.6.0",
-                capabilities=server.get_capabilities(
-                    notification_options=NotificationOptions(),
-                    experimental_capabilities={},
+        print(f"[glean-mcp-server] stdio server established after {time.time()-start_ts:.3f}s", file=sys.stderr)
+
+        async def run_server():
+            await server.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name="glean-mcp-server",
+                    server_version="1.6.0",
+                    capabilities=server.get_capabilities(
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
+                    ),
                 ),
-            ),
-        )
+            )
+
+        # Run server in background and keep process alive indefinitely.
+        task = asyncio.create_task(run_server())
+        try:
+            while True:
+                if task.done():
+                    # If it finished unexpectedly, log and break
+                    print("[glean-mcp-server] server task completed early", file=sys.stderr)
+                    exc = task.exception()
+                    if exc:
+                        print(f"[glean-mcp-server] server task exception: {exc}", file=sys.stderr)
+                    break
+                await asyncio.sleep(2)
+        except asyncio.CancelledError:  # pragma: no cover
+            pass
+    print("[glean-mcp-server] Shutdown complete", file=sys.stderr)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover - module exec
     try:
         asyncio.run(main())
-    except KeyboardInterrupt:
+    except KeyboardInterrupt:  # pragma: no cover - manual stop
         print("Server stopped by user")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"Server error: {e}", file=sys.stderr)
         sys.exit(1)
     finally:

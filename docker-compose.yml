@@ -1,12 +1,12 @@
-version: '3.8'
-
 services:
   glean-mcp-server:
     image: ghcr.io/alankyshum/glean-mcp-server:latest
     container_name: glean-mcp-server
+    # Provide your environment via exported shell vars or an .env file in this directory.
+    # Example (shell): export GLEAN_BASE_URL=https://company-be.glean.com; export GLEAN_COOKIES="cookie_string"; docker compose up -d
     environment:
-      - GLEAN_BASE_URL=${GLEAN_BASE_URL}
-      - GLEAN_COOKIES=${GLEAN_COOKIES}
+      - GLEAN_BASE_URL=${GLEAN_BASE_URL:?Set GLEAN_BASE_URL}
+      - GLEAN_COOKIES=${GLEAN_COOKIES:?Set GLEAN_COOKIES}
     restart: unless-stopped
     stdin_open: true
     tty: true

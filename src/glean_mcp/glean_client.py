@@ -6,6 +6,7 @@ import json
 import ssl
 from typing import Dict, Any, Optional, Callable, List
 from datetime import datetime
+import json
 import os
 
 
@@ -257,102 +258,159 @@ class GleanClient:
 
         url = f"{self.base_url}/api/v1/chat"
 
-        # Build request payload based on the provided curl example
+        # Compact but realistic payload similar to web app
         payload = {
             "agentConfig": {
                 "agent": "DEFAULT",
                 "mode": "DEFAULT",
                 "useDeepReasoning": False,
                 "useDeepResearch": False,
-                "clientCapabilities": {
-                    "canRenderImages": True,
-                    "paper": {
-                        "version": 1,
-                        "canCreate": False,
-                        "canEdit": False
-                    }
-                }
+                "clientCapabilities": {"canRenderImages": True}
             },
             "messages": [
                 {
-                    "agentConfig": {
-                        "agent": "DEFAULT",
-                        "mode": "DEFAULT",
-                        "useDeepReasoning": False,
-                        "useDeepResearch": False,
-                        "clientCapabilities": {
-                            "canRenderImages": True,
-                            "paper": {
-                                "canCreate": False,
-                                "canEdit": False,
-                                "version": 1
-                            }
-                        }
-                    },
                     "author": "USER",
-                    "fragments": [{"text": query}],
                     "messageType": "CONTENT",
+                    "fragments": [{"text": query}],
                     "uploadedFileIds": []
                 }
             ],
-            "saveChat": True,
             "sourceInfo": {
                 "initiator": "USER",
                 "platform": "WEB",
                 "hasCopyPaste": False,
                 "isDebug": False
             },
-            "stream": False,
-            "sc": "",
             "sessionInfo": {
                 "lastSeen": datetime.utcnow().isoformat() + "Z",
                 "sessionTrackingToken": "mcp_server_session",
                 "tabId": "mcp_server_tab",
-                "clickedInJsSession": True,
-                "firstEngageTsSec": int(datetime.utcnow().timestamp()),
-                "lastQuery": query
-            }
+                "clickedInJsSession": False,
+                "firstEngageTsSec": int(datetime.utcnow().timestamp())
+            },
+            "stream": False
         }
 
         # Add query parameters
         params = {
             "timezoneOffset": 420,
-            "clientVersion": "mcp-server-1.6.0",
-            "locale": "en"
+            # Use a realistic frontend client version string
+            "clientVersion": "fe-release-2025-07-29-7e37358",
+            "locale": "en",
         }
 
-        # Use text/plain content type for chat API
         headers = {
-            "Cookie": self.cookies,
-            "content-type": "text/plain"
+            'accept': 'application/json',
+            'accept-language': 'en-US,en;q=0.9',
+            'cache-control': 'no-cache',
+            'content-type': 'application/json',
+            'Cookie': self.cookies,
+            'origin': 'https://app.glean.com',
+            'pragma': 'no-cache',
+            'priority': 'u=1, i',
+            'referer': 'https://app.glean.com/',
+            'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"macOS"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-site',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
         }
 
-        response = await self.client.post(
-            url,
-            json=payload,
-            params=params,
-            headers=headers,
-            timeout=timeout_millis / 1000.0
-        )
+        attempts: List[Dict[str, Any]] = []
 
-        # Handle potential authentication issues
-        if response.status_code in [401, 403]:
-            await self._handle_cookie_expiration()
-            # Retry the request with potentially renewed cookies
-            headers["Cookie"] = self.cookies
-            response = await self.client.post(
-                url,
-                json=payload,
+        async def do_request(e_url: str, e_payload: Dict[str, Any], note: str):
+            resp = await self.client.post(
+                e_url,
+                json=e_payload,
                 params=params,
                 headers=headers,
-                timeout=timeout_millis / 1000.0
+                timeout=timeout_millis / 1000.0,
             )
+            return resp, note
 
-        response.raise_for_status()
+        # Attempt 1: current web-like payload to /api/v1/chat
+        response, note = await do_request(url, payload, "chat:web-like-payload")
+        if response.status_code in [401, 403]:
+            await self._handle_cookie_expiration()
+            headers["Cookie"] = self.cookies
+            response, note = await do_request(url, payload, note + ":retry")
 
-        # Parse the non-streaming response
-        data = response.json()
-        return self._parse_chat_response(data)
+        if 200 <= response.status_code < 300:
+            try:
+                data = response.json()
+                return self._parse_chat_response(data)
+            except Exception as parse_err:
+                attempts.append({
+                    "attempt": note,
+                    "status": response.status_code,
+                    "body": (response.text[:500] if hasattr(response, 'text') else ''),
+                    "error": f"json-parse:{parse_err}"
+                })
+        else:
+            attempts.append({
+                "attempt": note,
+                "status": response.status_code,
+                "body": (response.text[:500] if hasattr(response, 'text') else ''),
+            })
+
+        # Attempt 2: minimal payload with top-level 'message'
+        alt_payload = {
+            "message": query,
+            "stream": False,
+            "sessionInfo": {
+                "lastSeen": datetime.utcnow().isoformat() + "Z",
+                "sessionTrackingToken": "mcp_server_session",
+                "tabId": "mcp_server_tab",
+                "clickedInJsSession": False,
+                "firstEngageTsSec": int(datetime.utcnow().timestamp())
+            }
+        }
+        response, note = await do_request(url, alt_payload, "chat:minimal-message")
+        if 200 <= response.status_code < 300:
+            try:
+                data = response.json()
+                return self._parse_chat_response(data)
+            except Exception as parse_err:
+                attempts.append({
+                    "attempt": note,
+                    "status": response.status_code,
+                    "body": (response.text[:500] if hasattr(response, 'text') else ''),
+                    "error": f"json-parse:{parse_err}"
+                })
+        else:
+            attempts.append({
+                "attempt": note,
+                "status": response.status_code,
+                "body": (response.text[:500] if hasattr(response, 'text') else ''),
+            })
+
+        # Attempt 3: try /api/v1/research with simple query payload
+        research_url = f"{self.base_url}/api/v1/research"
+        research_payload = {"query": query, "stream": False}
+        response, note = await do_request(research_url, research_payload, "research:query")
+        if 200 <= response.status_code < 300:
+            try:
+                data = response.json()
+                return self._parse_chat_response(data)
+            except Exception as parse_err:
+                attempts.append({
+                    "attempt": note,
+                    "status": response.status_code,
+                    "body": (response.text[:500] if hasattr(response, 'text') else ''),
+                    "error": f"json-parse:{parse_err}"
+                })
+        else:
+            attempts.append({
+                "attempt": note,
+                "status": response.status_code,
+                "body": (response.text[:500] if hasattr(response, 'text') else ''),
+            })
+
+        # If all attempts failed, raise a rich error for upstream handler to surface
+        diag = json.dumps(attempts, indent=2)
+        raise Exception(f"All chat attempts failed: {diag}")
 
     def _parse_chat_response(self, data: dict) -> str:
         """
