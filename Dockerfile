@@ -5,7 +5,7 @@ FROM python:3.11-alpine
 WORKDIR /app
 
 # Set environment variables
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app/src
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
