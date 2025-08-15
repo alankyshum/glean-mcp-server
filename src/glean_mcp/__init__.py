@@ -1,27 +1,25 @@
-"""Public Python package interface for the Glean MCP utilities.
+"""Glean MCP Python package exports.
 
-This package intentionally exposes a *minimal*, implementation‑agnostic API so
-it can be embedded in any tooling environment (editors, CLI helpers, automations)
-without pulling in naming or behavior tied to a specific upstream project.
+Public API:
+- Cookie-based client: GleanClient, CookieExpiredError
+- Token-based client: TokenBasedGleanClient, TokenExpiredError
+- Server helpers: create_glean_client (auto-detects auth)
 
-Synchronous convenience functions are provided in :mod:`glean_mcp.api`:
- - ``glean_search(query: str, page_size: int = 10) -> str``
- - ``glean_chat(message: str) -> str``
- - ``glean_read_documents(specs: list[dict]) -> str``
-
-They return JSON strings for maximum portability (easy to log, pipe, or parse)
-while internally using the async ``GleanClient`` for efficient IO.
+Typing: package includes PEP 561 marker (py.typed)
 """
 
-from .api import glean_search, glean_chat, glean_read_documents  # noqa: F401
+from .cookie_client import GleanClient, CookieExpiredError
+from .token_client import TokenBasedGleanClient, TokenExpiredError
+from .server import create_glean_client
 
-# Keep version in sync with pyproject.toml. Avoid importing importlib.metadata at
-# runtime for speed; update manually during release bumps.
-__version__ = "2.0.0"
+# Keep version in sync with pyproject.toml; CI verifies this on tag release
+__version__ = "3.0.0"
 
 __all__ = [
-	"glean_search",
-	"glean_chat",
-	"glean_read_documents",
-	"__version__",
+    "GleanClient",
+    "CookieExpiredError",
+    "TokenBasedGleanClient",
+    "TokenExpiredError",
+    "create_glean_client",
+    "__version__",
 ]

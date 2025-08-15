@@ -23,11 +23,13 @@ from dotenv import load_dotenv
 
 try:
     # Try relative imports first (for package usage)
-    from .glean_client import GleanClient, CookieExpiredError
+    from .cookie_client import GleanClient, CookieExpiredError
+    from .token_client import TokenBasedGleanClient, TokenExpiredError
     from .glean_filter import filter_glean_response
 except ImportError:
     # Fall back to absolute imports (for direct script execution)
-    from glean_client import GleanClient, CookieExpiredError
+    from cookie_client import GleanClient, CookieExpiredError
+    from token_client import TokenBasedGleanClient, TokenExpiredError
     from glean_filter import filter_glean_response
 
 # Load environment variables
@@ -42,8 +44,8 @@ AUTO_OPEN_BROWSER = os.getenv("GLEAN_AUTO_OPEN_BROWSER", "true").lower() == "tru
 # Initialize the MCP server
 server = Server("glean-mcp-server")
 
-# Global client instance
-glean_client: GleanClient = None
+# Global client instance (can be either GleanClient or TokenBasedGleanClient)
+glean_client = None
 
 
 def prompt_for_new_cookies() -> str:
@@ -121,6 +123,61 @@ For local installation:
    • Update cookies: python scripts/update-cookies.py "paste_new_cookies_here"
 
 Your Glean instance: {clean_url}"""
+
+
+def prompt_for_new_token() -> str:
+    """
+    Prompt the user for a new API token when the current one expires.
+
+    Returns:
+        New API token from user input
+    """
+    # For MCP, we'll return a special message that instructs the user
+    # Since MCP doesn't support direct user input, we provide clear instructions
+    raise TokenExpiredError(
+        "API token has expired. Please update your MCP configuration with a fresh token and restart."
+    )
+
+
+def create_glean_client():
+    """
+    Create a Glean client with auto-detection of authentication method.
+
+    Returns:
+        Either GleanClient (cookie-based) or TokenBasedGleanClient (token-based)
+    """
+    base_url = os.getenv("GLEAN_BASE_URL")
+    api_token = os.getenv("GLEAN_API_TOKEN")
+    cookies = os.getenv("GLEAN_COOKIES")
+    instance = os.getenv("GLEAN_INSTANCE", "linkedin")
+
+    # Derive base_url from instance if not provided
+    if not base_url:
+        if instance:
+            base_url = f"https://{instance}-be.glean.com"
+        else:
+            raise ValueError("Either GLEAN_BASE_URL or GLEAN_INSTANCE environment variable is required")
+
+    # Auto-detect authentication method (prefer token over cookies)
+    if api_token:
+        print(f"🔑 Using token-based authentication")
+        return TokenBasedGleanClient(
+            base_url=base_url,
+            api_token=api_token,
+            token_renewal_callback=prompt_for_new_token
+        )
+    elif cookies:
+        print(f"🍪 Using cookie-based authentication")
+        return GleanClient(
+            base_url=base_url,
+            cookies=cookies,
+            cookie_renewal_callback=prompt_for_new_cookies
+        )
+    else:
+        raise ValueError(
+            "Authentication not configured. Set either GLEAN_API_TOKEN (preferred) "
+            "or GLEAN_COOKIES environment variable."
+        )
 
 
 @server.list_resources()
@@ -562,21 +619,12 @@ async def main():
     """Main entry point for the server."""
     global glean_client
 
-    # Get configuration from environment variables
-    base_url = os.getenv("GLEAN_BASE_URL")
-    cookies = os.getenv("GLEAN_COOKIES")
-
-    if not base_url:
-        raise ValueError("GLEAN_BASE_URL environment variable is required")
-    if not cookies:
-        raise ValueError("GLEAN_COOKIES environment variable is required")
-
-    # Initialize the Glean client with cookie renewal callback
-    glean_client = GleanClient(
-        base_url=base_url,
-        cookies=cookies,
-        cookie_renewal_callback=prompt_for_new_cookies
-    )
+    # Initialize the Glean client with auto-detection
+    try:
+        glean_client = create_glean_client()
+    except ValueError as e:
+        print(f"❌ Configuration Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
     # Run the server using stdio transport
     from mcp.server.stdio import stdio_server
