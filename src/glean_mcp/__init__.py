@@ -11,9 +11,10 @@ Typing: package includes PEP 561 marker (py.typed)
 from .cookie_client import GleanClient, CookieExpiredError
 from .token_client import TokenBasedGleanClient, TokenExpiredError
 from .server import create_glean_client
+from . import test_support as test_support
 
 # Keep version in sync with pyproject.toml; CI verifies this on tag release
-__version__ = "3.1.0"
+__version__ = "3.2.0"
 
 __all__ = [
     "GleanClient",
@@ -21,5 +22,6 @@ __all__ = [
     "TokenBasedGleanClient",
     "TokenExpiredError",
     "create_glean_client",
+    "test_support",
     "__version__",
 ]

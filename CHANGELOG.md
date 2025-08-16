@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.0] - 2025-08-15
+### Added
+- Exported test helpers as `glean_mcp.test_support` (async/sync cookie and token checks).
+
+### Changed
+- Tests updated to consume `test_support` instead of ad-hoc scripts.
+
+### Removed
+- Deprecated `scripts/check-cookies.py` and `scripts/check-token.py` in favor of package API.
+
 ## [3.1.0] - 2025-08-15
 ### Added
 - Pytest suite covering search, chat, and read_documents for both token and cookie auth.

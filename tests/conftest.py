@@ -2,26 +2,16 @@ import asyncio
 import os
 import sys
 from pathlib import Path
-import importlib.util
-import types
 import pytest
 
-# Make src and scripts importable
+# Make src importable
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
-SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SRC))
 
 from glean_mcp.cookie_client import GleanClient  # noqa: E402
 from glean_mcp.token_client import TokenBasedGleanClient  # noqa: E402
-
-
-def _load_module(module_path: Path) -> types.ModuleType:
-    spec = importlib.util.spec_from_file_location(module_path.stem, str(module_path))
-    assert spec and spec.loader
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)  # type: ignore
-    return mod
+from glean_mcp import test_support  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -71,16 +61,16 @@ def verify_auth_before_all(load_env, base_url, token, cookies):
     # Run token and cookie checkers if envs exist
     # Token checker
     if token:
-        mod = _load_module(SCRIPTS / "check-token.py")
-        ok = asyncio.run(mod.check_token())  # type: ignore[attr-defined]
+        ok, info = asyncio.run(test_support.check_token())
         if not ok:
-            pytest.skip("Token invalid according to check-token")
+            pytest.skip(f"Token invalid according to test_support.check_token: {info}")
     # Cookie checker
     if cookies:
-        mod = _load_module(SCRIPTS / "check-cookies.py")
-        ok = asyncio.run(mod.check_cookie_validity())  # type: ignore[attr-defined]
+        ok, info = asyncio.run(test_support.check_cookies())
         if not ok:
-            pytest.skip("Cookies invalid according to check-cookies")
+            pytest.skip(
+                f"Cookies invalid according to test_support.check_cookies: {info}"
+            )
 
 
 @pytest.fixture(scope="function")
