@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.3.0] - 2025-08-15
+### Changed
+- Align cookie client chat signature to `chat(message: str, conversation_id: str = "", timeout_millis: int = 30000)` to match token client.
+- Updated server, tests, docs, and scripts to use `message=` for clarity and consistency.
+
 ## [3.2.0] - 2025-08-15
 ### Added
 - Exported test helpers as `glean_mcp.test_support` (async/sync cookie and token checks).

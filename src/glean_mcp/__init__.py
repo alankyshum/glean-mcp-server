@@ -14,7 +14,7 @@ from .server import create_glean_client
 from . import test_support as test_support
 
 # Keep version in sync with pyproject.toml; CI verifies this on tag release
-__version__ = "3.2.0"
+__version__ = "3.3.0"
 
 __all__ = [
     "GleanClient",

@@ -368,7 +368,7 @@ async def handle_call_tool(
 
         try:
             # Use the chat API for research
-            result = await glean_client.chat(query=query)
+            result = await glean_client.chat(message=query)
 
             return [TextContent(type="text", text=result)]
         except CookieExpiredError as e:

@@ -6,7 +6,7 @@ import pytest
 async def test_chat_basic(clients, auth_mode):
     for mode, client in clients:
         if mode == auth_mode:
-            text = await client.chat("hello")
+            text = await client.chat(message="hello")
             assert isinstance(text, str)
             assert len(text) >= 0
             await client.close()

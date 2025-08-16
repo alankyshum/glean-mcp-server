@@ -7,7 +7,7 @@ This document describes the token-based authentication addon for the Glean MCP s
 The `glean_token_based_api_calls.py` module provides a polymorphic addon that extends the base `GleanClient` to support Bearer token authentication. This is useful for:
 
 - Server-to-server integrations
-- Automated scripts and CI/CD pipelines  
+- Automated scripts and CI/CD pipelines
 - Environments where browser cookies are not available
 - More secure authentication workflows
 
@@ -77,7 +77,7 @@ async def example():
         print(f"Found {len(results.get('results', []))} results")
 
         # Chat
-        response = await client.chat("What is our vacation policy?")
+        response = await client.chat(message="What is our vacation policy?")
         print(f"Response: {response}")
 
         # Read documents
@@ -200,7 +200,7 @@ def chat_tool(message: str) -> str:
 2. **403 Forbidden**: Token lacks required permissions
    - Contact your Glean administrator to grant appropriate permissions
 
-3. **Connection Issues**: 
+3. **Connection Issues**:
    - Verify `GLEAN_BASE_URL` is correct
    - Check network connectivity
    - Ensure HTTPS is used
@@ -237,5 +237,5 @@ See `examples/token_based_example.py` for complete working examples demonstratin
 - `create_token_based_client()`: Factory function to create token-based client
 - `get_client_for_auth_type()`: Factory function with auth type selection
 - `glean_search_with_token()`: Synchronous search function
-- `glean_chat_with_token()`: Synchronous chat function  
+- `glean_chat_with_token()`: Synchronous chat function
 - `glean_read_documents_with_token()`: Synchronous document reading function

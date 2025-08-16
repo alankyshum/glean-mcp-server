@@ -277,12 +277,15 @@ class GleanClient:
         response.raise_for_status()
         return response.json()
 
-    async def chat(self, query: str, timeout_millis: int = 30000) -> str:
+    async def chat(
+        self, message: str, conversation_id: str = "", timeout_millis: int = 30000
+    ) -> str:
         """
         Perform a chat query against Glean's chat API.
 
         Args:
-            query: Chat query string
+            message: User message/question
+            conversation_id: Optional conversation id for continuity
             timeout_millis: Request timeout in milliseconds
 
         Returns:
@@ -322,7 +325,7 @@ class GleanClient:
                         },
                     },
                     "author": "USER",
-                    "fragments": [{"text": query}],
+                    "fragments": [{"text": message}],
                     "messageType": "CONTENT",
                     "uploadedFileIds": [],
                 }
@@ -342,9 +345,13 @@ class GleanClient:
                 "tabId": "mcp_server_tab",
                 "clickedInJsSession": True,
                 "firstEngageTsSec": int(datetime.utcnow().timestamp()),
-                "lastQuery": query,
+                "lastQuery": message,
             },
         }
+
+        # If a conversation id is provided, include it in the payload for continuity
+        if conversation_id:
+            payload["conversationId"] = conversation_id
 
         # Add query parameters
         params = {

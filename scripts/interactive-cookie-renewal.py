@@ -91,7 +91,7 @@ async def test_chat_renewal():
     try:
         # Test chat - this should trigger cookie validation
         print("\n💬 Testing chat functionality...")
-        response = await client.chat("What is the current deployment status?")
+        response = await client.chat(message="What is the current deployment status?")
         print("✅ Chat successful!")
         print(f"Response length: {len(response)} characters")
 
