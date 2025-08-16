@@ -1,9 +1,8 @@
 """
 Glean API client for making search requests.
 """
+
 import httpx
-import json
-import ssl
 from typing import Dict, Any, Optional, Callable, List
 from datetime import datetime
 import os
@@ -11,13 +10,19 @@ import os
 
 class CookieExpiredError(Exception):
     """Raised when cookies are expired and need renewal."""
+
     pass
 
 
 class GleanClient:
     """Client for interacting with Glean API."""
 
-    def __init__(self, base_url: str, cookies: str, cookie_renewal_callback: Optional[Callable[[], str]] = None):
+    def __init__(
+        self,
+        base_url: str,
+        cookies: str,
+        cookie_renewal_callback: Optional[Callable[[], str]] = None,
+    ):
         """
         Initialize the Glean client.
 
@@ -27,32 +32,32 @@ class GleanClient:
             cookie_renewal_callback: Optional callback function to prompt for new cookies
         """
         # Ensure HTTPS is used for secure communication
-        if not base_url.startswith('https://'):
+        if not base_url.startswith("https://"):
             raise ValueError("Base URL must use HTTPS for secure communication")
 
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.cookies = cookies
         self.cookie_renewal_callback = cookie_renewal_callback
         self._cookies_validated = False
         self.client = httpx.AsyncClient(
             timeout=30.0,
             headers={
-                'accept': '*/*',
-                'accept-language': 'en-US,en;q=0.9',
-                'cache-control': 'no-cache',
-                'content-type': 'application/json',
-                'origin': 'https://app.glean.com',
-                'pragma': 'no-cache',
-                'priority': 'u=1, i',
-                'referer': 'https://app.glean.com/',
-                'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"macOS"',
-                'sec-fetch-dest': 'empty',
-                'sec-fetch-mode': 'cors',
-                'sec-fetch-site': 'same-site',
-                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
-            }
+                "accept": "*/*",
+                "accept-language": "en-US,en;q=0.9",
+                "cache-control": "no-cache",
+                "content-type": "application/json",
+                "origin": "https://app.glean.com",
+                "pragma": "no-cache",
+                "priority": "u=1, i",
+                "referer": "https://app.glean.com/",
+                "sec-ch-ua": '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": '"macOS"',
+                "sec-fetch-dest": "empty",
+                "sec-fetch-mode": "cors",
+                "sec-fetch-site": "same-site",
+                "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+            },
         )
 
     async def _validate_cookies(self) -> bool:
@@ -67,18 +72,24 @@ class GleanClient:
             url = f"{self.base_url}/api/v1/search"
 
             # Params aligned with checker (allow override via env)
-            client_version = os.getenv("GLEAN_CLIENT_VERSION", "fe-release-2025-08-07-25f2142")
+            client_version = os.getenv(
+                "GLEAN_CLIENT_VERSION", "fe-release-2025-08-07-25f2142"
+            )
             params = {
                 "clientVersion": client_version,
                 "locale": "en",
             }
 
             # Dynamic timestamp/session like checker
-            now_iso = datetime.utcnow().isoformat(timespec='milliseconds') + 'Z'
+            now_iso = datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
 
             def _rand_token(n: int = 16) -> str:
-                import random, string
-                return ''.join(random.choices(string.ascii_letters + string.digits, k=n))
+                import random
+                import string
+
+                return "".join(
+                    random.choices(string.ascii_letters + string.digits, k=n)
+                )
 
             payload = {
                 "inputDetails": {"hasCopyPaste": False},
@@ -118,22 +129,22 @@ class GleanClient:
             }
 
             headers = {
-                'accept': '*/*',
-                'accept-language': 'en-US,en;q=0.9',
-                'cache-control': 'no-cache',
-                'content-type': 'application/json',
-                'cookie': self.cookies,
-                'origin': 'https://app.glean.com',
-                'pragma': 'no-cache',
-                'priority': 'u=1, i',
-                'referer': 'https://app.glean.com/',
-                'sec-ch-ua': '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"macOS"',
-                'sec-fetch-dest': 'empty',
-                'sec-fetch-mode': 'cors',
-                'sec-fetch-site': 'same-site',
-                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
+                "accept": "*/*",
+                "accept-language": "en-US,en;q=0.9",
+                "cache-control": "no-cache",
+                "content-type": "application/json",
+                "cookie": self.cookies,
+                "origin": "https://app.glean.com",
+                "pragma": "no-cache",
+                "priority": "u=1, i",
+                "referer": "https://app.glean.com/",
+                "sec-ch-ua": '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": '"macOS"',
+                "sec-fetch-dest": "empty",
+                "sec-fetch-mode": "cors",
+                "sec-fetch-site": "same-site",
+                "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
             }
 
             response = await self.client.post(
@@ -190,7 +201,7 @@ class GleanClient:
         query: str,
         page_size: int = 14,
         max_snippet_size: int = 215,
-        timeout_millis: int = 10000
+        timeout_millis: int = 10000,
     ) -> Dict[str, Any]:
         """
         Perform a search query against Glean API.
@@ -226,9 +237,9 @@ class GleanClient:
                     "RESULTS",
                     "FACET_RESULTS",
                     "ALL_RESULT_COUNTS",
-                    "SPELLCHECK_METADATA"
+                    "SPELLCHECK_METADATA",
                 ],
-                "timezoneOffset": 420
+                "timezoneOffset": 420,
             },
             "sc": "",
             "sessionInfo": {
@@ -236,29 +247,23 @@ class GleanClient:
                 "sessionTrackingToken": "mcp_server_session",
                 "tabId": "mcp_server_tab",
                 "clickedInJsSession": True,
-                "firstEngageTsSec": int(datetime.utcnow().timestamp())
+                "firstEngageTsSec": int(datetime.utcnow().timestamp()),
             },
             "sourceInfo": {
                 "clientVersion": "mcp-server-1.6.0",
                 "initiator": "USER",
                 "isDebug": False,
-                "modality": "FULLPAGE"
+                "modality": "FULLPAGE",
             },
             "timeoutMillis": timeout_millis,
-            "timestamp": datetime.utcnow().isoformat() + "Z"
+            "timestamp": datetime.utcnow().isoformat() + "Z",
         }
 
         # Add query parameters
-        params = {
-            "clientVersion": "mcp-server-1.6.0",
-            "locale": "en"
-        }
+        params = {"clientVersion": "mcp-server-1.6.0", "locale": "en"}
 
         response = await self.client.post(
-            url,
-            json=payload,
-            params=params,
-            headers={"Cookie": self.cookies}
+            url, json=payload, params=params, headers={"Cookie": self.cookies}
         )
 
         # Handle potential authentication issues
@@ -266,20 +271,13 @@ class GleanClient:
             await self._handle_cookie_expiration()
             # Retry the request with potentially renewed cookies
             response = await self.client.post(
-                url,
-                json=payload,
-                params=params,
-                headers={"Cookie": self.cookies}
+                url, json=payload, params=params, headers={"Cookie": self.cookies}
             )
 
         response.raise_for_status()
         return response.json()
 
-    async def chat(
-        self,
-        query: str,
-        timeout_millis: int = 30000
-    ) -> str:
+    async def chat(self, query: str, timeout_millis: int = 30000) -> str:
         """
         Perform a chat query against Glean's chat API.
 
@@ -304,12 +302,8 @@ class GleanClient:
                 "useDeepResearch": False,
                 "clientCapabilities": {
                     "canRenderImages": True,
-                    "paper": {
-                        "version": 1,
-                        "canCreate": False,
-                        "canEdit": False
-                    }
-                }
+                    "paper": {"version": 1, "canCreate": False, "canEdit": False},
+                },
             },
             "messages": [
                 {
@@ -323,14 +317,14 @@ class GleanClient:
                             "paper": {
                                 "canCreate": False,
                                 "canEdit": False,
-                                "version": 1
-                            }
-                        }
+                                "version": 1,
+                            },
+                        },
                     },
                     "author": "USER",
                     "fragments": [{"text": query}],
                     "messageType": "CONTENT",
-                    "uploadedFileIds": []
+                    "uploadedFileIds": [],
                 }
             ],
             "saveChat": True,
@@ -338,7 +332,7 @@ class GleanClient:
                 "initiator": "USER",
                 "platform": "WEB",
                 "hasCopyPaste": False,
-                "isDebug": False
+                "isDebug": False,
             },
             "stream": False,
             "sc": "",
@@ -348,29 +342,26 @@ class GleanClient:
                 "tabId": "mcp_server_tab",
                 "clickedInJsSession": True,
                 "firstEngageTsSec": int(datetime.utcnow().timestamp()),
-                "lastQuery": query
-            }
+                "lastQuery": query,
+            },
         }
 
         # Add query parameters
         params = {
             "timezoneOffset": 420,
             "clientVersion": "mcp-server-1.6.0",
-            "locale": "en"
+            "locale": "en",
         }
 
         # Use text/plain content type for chat API
-        headers = {
-            "Cookie": self.cookies,
-            "content-type": "text/plain"
-        }
+        headers = {"Cookie": self.cookies, "content-type": "text/plain"}
 
         response = await self.client.post(
             url,
             json=payload,
             params=params,
             headers=headers,
-            timeout=timeout_millis / 1000.0
+            timeout=timeout_millis / 1000.0,
         )
 
         # Handle potential authentication issues
@@ -383,7 +374,7 @@ class GleanClient:
                 json=payload,
                 params=params,
                 headers=headers,
-                timeout=timeout_millis / 1000.0
+                timeout=timeout_millis / 1000.0,
             )
 
         response.raise_for_status()
@@ -407,21 +398,23 @@ class GleanClient:
         search_context = ""
 
         # Process messages to extract both search context and response
-        if 'messages' in data and data['messages']:
-            for message in data['messages']:
-                if message.get('author') == 'GLEAN_AI':
-                    step_id = message.get('stepId')
+        if "messages" in data and data["messages"]:
+            for message in data["messages"]:
+                if message.get("author") == "GLEAN_AI":
+                    step_id = message.get("stepId")
 
                     # Extract search/documentation steps (various step IDs possible)
-                    if (step_id and ('search' in step_id.lower() or
-                                   'documentation' in step_id.lower() or
-                                   'runbook' in step_id.lower() or
-                                   'context' in step_id.lower())):
-                        if 'fragments' in message:
+                    if step_id and (
+                        "search" in step_id.lower()
+                        or "documentation" in step_id.lower()
+                        or "runbook" in step_id.lower()
+                        or "context" in step_id.lower()
+                    ):
+                        if "fragments" in message:
                             search_text = ""
-                            for fragment in message['fragments']:
-                                if 'text' in fragment:
-                                    search_text += fragment['text']
+                            for fragment in message["fragments"]:
+                                if "text" in fragment:
+                                    search_text += fragment["text"]
                             if search_text.strip():
                                 if search_context:
                                     search_context += "\n\n" + search_text.strip()
@@ -429,14 +422,16 @@ class GleanClient:
                                     search_context = search_text.strip()
 
                     # Extract the main response (step IDs containing "respond" or "synthesize")
-                    elif (step_id and ('respond' in step_id.lower() or 'synthesize' in step_id.lower())):
+                    elif step_id and (
+                        "respond" in step_id.lower() or "synthesize" in step_id.lower()
+                    ):
                         # Extract text fragments and citations
-                        if 'fragments' in message:
-                            for fragment in message['fragments']:
-                                if 'text' in fragment:
-                                    complete_text += fragment['text']
-                                elif 'citation' in fragment:
-                                    citations.append(fragment['citation'])
+                        if "fragments" in message:
+                            for fragment in message["fragments"]:
+                                if "text" in fragment:
+                                    complete_text += fragment["text"]
+                                elif "citation" in fragment:
+                                    citations.append(fragment["citation"])
 
         # Combine search context and response
         result = ""
@@ -451,10 +446,10 @@ class GleanClient:
             seen_urls = set()
             citation_num = 1
             for citation in citations:
-                if 'sourceDocument' in citation:
-                    doc = citation['sourceDocument']
-                    title = doc.get('title', 'Unknown')
-                    url = doc.get('url', '')
+                if "sourceDocument" in citation:
+                    doc = citation["sourceDocument"]
+                    title = doc.get("title", "Unknown")
+                    url = doc.get("url", "")
                     if url and url not in seen_urls:
                         result += f"{citation_num}. [{title}]({url})\n"
                         seen_urls.add(url)
@@ -462,7 +457,9 @@ class GleanClient:
 
         return result.strip()
 
-    async def read_documents(self, document_specs: List[Dict[str, str]]) -> Dict[str, Any]:
+    async def read_documents(
+        self, document_specs: List[Dict[str, str]]
+    ) -> Dict[str, Any]:
         """
         Read documents from Glean by ID or URL.
 
@@ -479,45 +476,48 @@ class GleanClient:
         url = f"{self.base_url}/api/v1/getdocuments"
 
         # Add query parameters like in the curl command
-        params = {
-            "clientVersion": "fe-release-2025-07-29-7e37358",
-            "locale": "en"
-        }
+        params = {"clientVersion": "fe-release-2025-07-29-7e37358", "locale": "en"}
 
         payload = {
             "documentSpecs": document_specs,
-            "includeFields": ["DOCUMENT_CONTENT", "LAST_VIEWED_AT", "VISITORS_COUNT"]
+            "includeFields": ["DOCUMENT_CONTENT", "LAST_VIEWED_AT", "VISITORS_COUNT"],
         }
 
         # Use headers that match the curl command exactly
         headers = {
-            'accept': '*/*',
-            'accept-language': 'en-US,en;q=0.9',
-            'cache-control': 'no-cache',
-            'content-type': 'application/json',
-            'cookie': self.cookies,  # Use lowercase 'cookie' header
-            'origin': 'https://app.glean.com',
-            'pragma': 'no-cache',
-            'priority': 'u=1, i',
-            'referer': 'https://app.glean.com/',
-            'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"macOS"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-site',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.9",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "cookie": self.cookies,  # Use lowercase 'cookie' header
+            "origin": "https://app.glean.com",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "https://app.glean.com/",
+            "sec-ch-ua": '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"macOS"',
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
         }
 
         try:
-            response = await self.client.post(url, json=payload, headers=headers, params=params)
+            response = await self.client.post(
+                url, json=payload, headers=headers, params=params
+            )
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 401:
-                raise CookieExpiredError("Authentication failed - cookies may have expired")
+                raise CookieExpiredError(
+                    "Authentication failed - cookies may have expired"
+                )
             else:
-                raise Exception(f"HTTP error {e.response.status_code}: {e.response.text}")
+                raise Exception(
+                    f"HTTP error {e.response.status_code}: {e.response.text}"
+                )
         except Exception as e:
             raise Exception(f"Request failed: {str(e)}")
 

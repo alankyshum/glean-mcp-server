@@ -27,15 +27,15 @@ from typing import Any, Dict, List, Optional, Callable
 import json
 import os
 import asyncio
-from datetime import datetime
 
 import httpx
 
-from .cookie_client import GleanClient, CookieExpiredError
+from .cookie_client import GleanClient
 
 
 class TokenExpiredError(Exception):
     """Raised when API token has expired or is invalid."""
+
     pass
 
 
@@ -47,7 +47,12 @@ class TokenBasedGleanClient(GleanClient):
     compared to the cookie-based client.
     """
 
-    def __init__(self, base_url: str, api_token: str, token_renewal_callback: Optional[Callable[[], str]] = None):
+    def __init__(
+        self,
+        base_url: str,
+        api_token: str,
+        token_renewal_callback: Optional[Callable[[], str]] = None,
+    ):
         """
         Initialize the token-based Glean client.
 
@@ -75,7 +80,7 @@ class TokenBasedGleanClient(GleanClient):
             headers = {
                 "Content-Type": "application/json",
                 "Accept": "application/json",
-                "Authorization": f"Bearer {self.api_token}"
+                "Authorization": f"Bearer {self.api_token}",
             }
             payload = {"query": "test", "pageSize": 1}
 
@@ -100,8 +105,8 @@ class TokenBasedGleanClient(GleanClient):
 
         # If no callback or renewal failed, raise an error
         raise TokenExpiredError(
-            f"API token has expired. Please obtain a new token from your Glean instance "
-            f"and set the GLEAN_API_TOKEN environment variable."
+            "API token has expired. Please obtain a new token from your Glean instance "
+            "and set the GLEAN_API_TOKEN environment variable."
         )
 
     async def _ensure_authenticated(self):
@@ -114,13 +119,12 @@ class TokenBasedGleanClient(GleanClient):
             else:
                 await self._handle_token_expiration()
 
-
     async def search(
         self,
         query: str,
         page_size: int = 14,
         max_snippet_size: int = 215,
-        timeout_millis: int = 10000
+        timeout_millis: int = 10000,
     ) -> Dict[str, Any]:
         """
         Perform a search query against Glean API using token authentication.
@@ -141,22 +145,16 @@ class TokenBasedGleanClient(GleanClient):
         url = f"{self.base_url}/rest/api/v1/search"
 
         # Build simplified payload for token-based API
-        payload = {
-            "query": query,
-            "pageSize": page_size
-        }
+        payload = {"query": query, "pageSize": page_size}
 
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "Authorization": f"Bearer {self.api_token}"
+            "Authorization": f"Bearer {self.api_token}",
         }
 
         response = await self.client.post(
-            url,
-            json=payload,
-            headers=headers,
-            timeout=timeout_millis / 1000.0
+            url, json=payload, headers=headers, timeout=timeout_millis / 1000.0
         )
 
         # Handle potential authentication issues
@@ -165,21 +163,14 @@ class TokenBasedGleanClient(GleanClient):
             # Retry the request with potentially renewed token
             headers["Authorization"] = f"Bearer {self.api_token}"
             response = await self.client.post(
-                url,
-                json=payload,
-                headers=headers,
-                timeout=timeout_millis / 1000.0
+                url, json=payload, headers=headers, timeout=timeout_millis / 1000.0
             )
 
         response.raise_for_status()
         return response.json()
 
-
     async def chat(
-        self,
-        message: str,
-        conversation_id: str = "",
-        timeout_millis: int = 30000
+        self, message: str, conversation_id: str = "", timeout_millis: int = 30000
     ) -> str:
         """
         Have a conversational interaction with Glean using token authentication.
@@ -215,14 +206,11 @@ class TokenBasedGleanClient(GleanClient):
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "Authorization": f"Bearer {self.api_token}"
+            "Authorization": f"Bearer {self.api_token}",
         }
 
         response = await self.client.post(
-            url,
-            json=payload,
-            headers=headers,
-            timeout=timeout_millis / 1000.0
+            url, json=payload, headers=headers, timeout=timeout_millis / 1000.0
         )
 
         # Handle potential authentication issues
@@ -231,10 +219,7 @@ class TokenBasedGleanClient(GleanClient):
             # Retry the request with potentially renewed token
             headers["Authorization"] = f"Bearer {self.api_token}"
             response = await self.client.post(
-                url,
-                json=payload,
-                headers=headers,
-                timeout=timeout_millis / 1000.0
+                url, json=payload, headers=headers, timeout=timeout_millis / 1000.0
             )
 
         response.raise_for_status()
@@ -243,19 +228,20 @@ class TokenBasedGleanClient(GleanClient):
         data = response.json()
         return self._parse_chat_response(data)
 
-
     def _normalize_url(self, u: str) -> str:
         """Strip fragments (#...) and query (?...) for stable document identity."""
         try:
             # Remove fragment (#...)
-            u = u.split('#', 1)[0]
+            u = u.split("#", 1)[0]
             # Remove query (?...)
-            u = u.split('?', 1)[0]
+            u = u.split("?", 1)[0]
             return u
         except Exception:
             return u
 
-    async def read_documents(self, document_specs: List[Dict[str, str]]) -> Dict[str, Any]:
+    async def read_documents(
+        self, document_specs: List[Dict[str, str]]
+    ) -> Dict[str, Any]:
         """
         Read documents from Glean by ID or URL using token authentication.
 
@@ -284,13 +270,13 @@ class TokenBasedGleanClient(GleanClient):
 
         payload = {
             "documentSpecs": docs_payload,
-            "includeFields": ["DOCUMENT_CONTENT", "LAST_VIEWED_AT", "VISITORS_COUNT"]
+            "includeFields": ["DOCUMENT_CONTENT", "LAST_VIEWED_AT", "VISITORS_COUNT"],
         }
 
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "Authorization": f"Bearer {self.api_token}"
+            "Authorization": f"Bearer {self.api_token}",
         }
 
         try:
@@ -307,20 +293,25 @@ class TokenBasedGleanClient(GleanClient):
             return response.json()
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 401:
-                raise TokenExpiredError("Authentication failed - token may have expired")
+                raise TokenExpiredError(
+                    "Authentication failed - token may have expired"
+                )
             else:
-                raise Exception(f"HTTP error {e.response.status_code}: {e.response.text}")
+                raise Exception(
+                    f"HTTP error {e.response.status_code}: {e.response.text}"
+                )
         except Exception as e:
             raise Exception(f"Request failed: {str(e)}")
 
 
 # ---------------- Factory Functions ---------------- #
 
+
 def create_token_based_client(
     base_url: Optional[str] = None,
     api_token: Optional[str] = None,
     instance: Optional[str] = None,
-    token_renewal_callback: Optional[Callable[[], str]] = None
+    token_renewal_callback: Optional[Callable[[], str]] = None,
 ) -> TokenBasedGleanClient:
     """
     Create a token-based Glean client from environment variables or parameters.
@@ -348,19 +339,18 @@ def create_token_based_client(
     # Determine base URL
     if not base_url:
         instance_name = instance or os.environ.get("GLEAN_INSTANCE", "linkedin")
-        base_url = os.environ.get("GLEAN_BASE_URL") or f"https://{instance_name}-be.glean.com"
+        base_url = (
+            os.environ.get("GLEAN_BASE_URL") or f"https://{instance_name}-be.glean.com"
+        )
 
     # Ensure HTTPS is used for secure communication
-    if not base_url.startswith('https://'):
+    if not base_url.startswith("https://"):
         raise ValueError("Base URL must use HTTPS for secure communication")
 
     return TokenBasedGleanClient(base_url, token, token_renewal_callback)
 
 
-def get_client_for_auth_type(
-    auth_type: str = "auto",
-    **kwargs
-) -> GleanClient:
+def get_client_for_auth_type(auth_type: str = "auto", **kwargs) -> GleanClient:
     """
     Get a Glean client based on the authentication type.
 
@@ -398,10 +388,13 @@ def get_client_for_auth_type(
                 "or GLEAN_COOKIES environment variable."
             )
     else:
-        raise ValueError(f"Invalid auth_type: {auth_type}. Must be 'token', 'cookie', or 'auto'.")
+        raise ValueError(
+            f"Invalid auth_type: {auth_type}. Must be 'token', 'cookie', or 'auto'."
+        )
 
 
 # ---------------- Synchronous API Functions ---------------- #
+
 
 def glean_search_with_token(query: str, page_size: int = 10) -> str:
     """
@@ -414,6 +407,7 @@ def glean_search_with_token(query: str, page_size: int = 10) -> str:
     Returns:
         JSON string of results or error info
     """
+
     async def _search():
         client = create_token_based_client()
         try:
@@ -438,6 +432,7 @@ def glean_chat_with_token(message: str, conversation_id: str = "") -> str:
     Returns:
         JSON string of response or error info
     """
+
     async def _chat():
         client = create_token_based_client()
         try:
@@ -461,6 +456,7 @@ def glean_read_documents_with_token(document_specs: List[Dict[str, str]]) -> str
     Returns:
         JSON string of results or error info
     """
+
     async def _read_docs():
         client = create_token_based_client()
         try:
@@ -483,5 +479,5 @@ __all__ = [
     "get_client_for_auth_type",
     "glean_search_with_token",
     "glean_chat_with_token",
-    "glean_read_documents_with_token"
+    "glean_read_documents_with_token",
 ]

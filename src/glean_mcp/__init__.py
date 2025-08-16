@@ -13,7 +13,7 @@ from .token_client import TokenBasedGleanClient, TokenExpiredError
 from .server import create_glean_client
 
 # Keep version in sync with pyproject.toml; CI verifies this on tag release
-__version__ = "3.0.0"
+__version__ = "3.1.0"
 
 __all__ = [
     "GleanClient",

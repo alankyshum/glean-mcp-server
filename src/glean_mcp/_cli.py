@@ -1,33 +1,20 @@
-"""Console entry point for the glean-mcp CLI.
-
-Wraps the async server.main with asyncio.run so it can be used as a console script.
-"""
-from __future__ import annotations
-
-import asyncio
-
-from .server import main as _async_main
-
-
-def main() -> None:
-    asyncio.run(_async_main())
-
-"""Console script entry point for the Glean MCP server and helper utilities.
+"""Console script entry point for the Glean MCP helper utilities.
 
 This provides a thin CLI so users can run `python -m glean_mcp` or
-`glean-mcp-server` after installation.
+`glean-mcp` after installation.
 """
+
 from __future__ import annotations
 
 import argparse
-import os
-import sys
 
 from .api import glean_search, glean_chat, glean_read_documents
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="glean-mcp", description="Glean MCP utilities")
+    parser = argparse.ArgumentParser(
+        prog="glean-mcp", description="Glean MCP utilities"
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_search = sub.add_parser("search", help="Perform a search")
@@ -38,7 +25,9 @@ def main(argv: list[str] | None = None) -> int:
     p_chat.add_argument("message")
 
     p_docs = sub.add_parser("read-docs", help="Read documents by id/url")
-    p_docs.add_argument("spec", nargs="+", help='Document specs like id=123 or url=https://...')
+    p_docs.add_argument(
+        "spec", nargs="+", help="Document specs like id=123 or url=https://..."
+    )
 
     # No server subcommand exposed – distribution focuses on client helpers only.
 
