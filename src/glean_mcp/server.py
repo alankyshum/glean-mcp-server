@@ -568,18 +568,26 @@ async def main():
     from mcp.server.stdio import stdio_server
 
     async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                server_name="glean-mcp-server",
-                server_version="1.6.0",
-                capabilities=server.get_capabilities(
-                    notification_options=NotificationOptions(),
-                    experimental_capabilities={},
+        try:
+            await server.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name="glean-mcp-server",
+                    server_version="1.6.0",
+                    capabilities=server.get_capabilities(
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
+                    ),
                 ),
-            ),
-        )
+            )
+        finally:
+            # Ensure the HTTP client is closed on the same event loop
+            if glean_client:
+                try:
+                    await glean_client.close()
+                except Exception:
+                    pass
 
 
 if __name__ == "__main__":
@@ -591,5 +599,5 @@ if __name__ == "__main__":
         print(f"Server error: {e}", file=sys.stderr)
         sys.exit(1)
     finally:
-        if glean_client:
-            asyncio.run(glean_client.close())
+        # glean_client is closed within main() on the same loop
+        pass

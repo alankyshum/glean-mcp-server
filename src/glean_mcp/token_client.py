@@ -407,6 +407,19 @@ def glean_search_with_token(query: str, page_size: int = 10) -> str:
     Returns:
         JSON string of results or error info
     """
+    # These synchronous helpers are intended for CLI/console usage only.
+    # If called from within an already-running asyncio event loop (e.g. VS Code, Jupyter,
+    # FastAPI, Captain MCP), we raise a clear error instead of deadlocking or crashing.
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        # No running loop – safe to use asyncio.run below
+        pass
+    else:
+        raise RuntimeError(
+            "glean_search_with_token cannot be called from within a running event loop. "
+            "Use the async client API instead: await TokenBasedGleanClient.search(...)."
+        )
 
     async def _search():
         client = create_token_based_client()
@@ -432,6 +445,16 @@ def glean_chat_with_token(message: str, conversation_id: str = "") -> str:
     Returns:
         JSON string of response or error info
     """
+    # Prevent usage inside an active asyncio loop (e.g. servers/frameworks)
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError(
+            "glean_chat_with_token cannot be called from within a running event loop. "
+            "Use the async client API instead: await TokenBasedGleanClient.chat(...)."
+        )
 
     async def _chat():
         client = create_token_based_client()
@@ -456,6 +479,16 @@ def glean_read_documents_with_token(document_specs: List[Dict[str, str]]) -> str
     Returns:
         JSON string of results or error info
     """
+    # Prevent usage inside an active asyncio loop (e.g. servers/frameworks)
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError(
+            "glean_read_documents_with_token cannot be called from within a running event loop. "
+            "Use the async client API instead: await TokenBasedGleanClient.read_documents(...)."
+        )
 
     async def _read_docs():
         client = create_token_based_client()
